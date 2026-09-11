@@ -97,7 +97,7 @@ func applyDefaults(config *models.Config) {
 		config.Discovery.Metrics.Statistic = "avg"
 	}
 
-	if config.Discovery.Processing.Concurrency == 0 {
+	if config.Discovery.Processing.Concurrency <= 0 {
 		config.Discovery.Processing.Concurrency = DefaultConcurrency
 	}
 
@@ -333,7 +333,7 @@ func parsedMetricsConfig(config models.MetricsConfig) (models.ParsedMetricsConfi
 }
 
 func parseProcessingConfig(config models.ProcessingConfig) models.ParsedProcessingConfig {
-	concurrency := GetOrDefault(config.Concurrency, 1, MaximumConcurrency, DefaultConcurrency, "concurrency")
+	concurrency := GetOrDefault(config.Concurrency, 1, MaximumConcurrency, MaximumConcurrency, "concurrency")
 
 	return models.ParsedProcessingConfig{
 		Concurrency: concurrency,

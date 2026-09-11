@@ -164,7 +164,7 @@ Controls how the exporter discovers and monitors RDS/Aurora instances.
 | `metrics.cache.metric-data.pattern-ttls` | array | Optional | `[]` | Pattern-based TTL overrides for specific metrics. Patterns match against metric names (e.g., `db.load.avg`). If pattern TTL is smaller than the metric's data interval, the dynamic TTL will be used instead. If no pattern matches, TTL is calculated dynamically based on metric granularity |
 | `metrics.include` | map | Optional | `{}` | Map of field names to regex pattern arrays for metric filtering (allowlist mode). Supported fields: `name`, `category`, `unit` |
 | `metrics.exclude` | map | Optional | `{}` | Map of field names to regex pattern arrays for metric filtering (denylist mode). Supported fields: `name`, `category`, `unit` |
-| `processing.concurrency` | integer | Optional | `4` | Number of concurrent goroutines for metric collection |
+| `processing.concurrency` | integer | Optional | `4` | Number of concurrent goroutines for metric collection (accepted range: 1–60; values above 60 are capped at 60) |
 
 **Valid statistic values:**
 - `"avg"` - Average values

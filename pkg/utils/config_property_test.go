@@ -431,7 +431,7 @@ func TestProperty_HighConcurrencyDefault(t *testing.T) {
 	parameters.MinSuccessfulTests = 100
 	properties := gopter.NewProperties(parameters)
 
-	properties.Property("LoadConfig applies default for high concurrency values", prop.ForAll(
+	properties.Property("LoadConfig caps high concurrency values at MaximumConcurrency", prop.ForAll(
 		func(highConcurrency int) bool {
 			yamlContent := fmt.Sprintf(`discovery:
   regions:
@@ -452,9 +452,9 @@ func TestProperty_HighConcurrencyDefault(t *testing.T) {
 				return false
 			}
 
-			// Values > MaximumConcurrency should default to DefaultConcurrency
+			// Values > MaximumConcurrency are capped at MaximumConcurrency
 			if highConcurrency > MaximumConcurrency {
-				return config.Discovery.Processing.Concurrency == DefaultConcurrency
+				return config.Discovery.Processing.Concurrency == MaximumConcurrency
 			}
 
 			return true
