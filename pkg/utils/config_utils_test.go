@@ -137,7 +137,7 @@ export:
 			},
 		},
 		{
-			name: "load config with max instances exceeding limit gets capped",
+			name: "load config with max instances above default is accepted",
 			configContent: `discovery:
   regions:
   - us-east-1
@@ -149,7 +149,7 @@ export:
   port: 8081`,
 			expectedError: false,
 			validate: func(t *testing.T, cfg *models.ParsedConfig) {
-				assert.Equal(t, testutils.TestMaxInstances, cfg.Discovery.Instances.MaxInstances)
+				assert.Equal(t, 100, cfg.Discovery.Instances.MaxInstances)
 			},
 		},
 		{
@@ -738,7 +738,7 @@ func TestParseInstancesConfig(t *testing.T) {
 			validate:      nil,
 		},
 		{
-			name: "maxInstances exceeds limit gets capped",
+			name: "maxInstances above default is accepted",
 			config: models.InstancesConfig{
 				MaxInstances: 100,
 				Include:      nil,
@@ -746,7 +746,7 @@ func TestParseInstancesConfig(t *testing.T) {
 			},
 			expectedError: false,
 			validate: func(t *testing.T, cfg models.ParsedInstancesConfig) {
-				assert.Equal(t, MaxInstances, cfg.MaxInstances)
+				assert.Equal(t, 100, cfg.MaxInstances)
 			},
 		},
 		{
