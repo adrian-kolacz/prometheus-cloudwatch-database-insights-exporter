@@ -465,6 +465,54 @@ func TestProperty_MaxInstancesAboveDefault(t *testing.T) {
 	properties.TestingRun(t)
 }
 
+// Property 50: max-instances at upper boundary (10,000) is accepted
+func TestProperty_MaxInstancesAtUpperBoundary(t *testing.T) {
+	yamlContent := fmt.Sprintf(`discovery:
+  regions:
+    - us-west-2
+  instances:
+    max-instances: %d
+`, 10_000)
+
+	tmpDir := t.TempDir()
+	tmpFile := filepath.Join(tmpDir, "config.yml")
+	if err := os.WriteFile(tmpFile, []byte(yamlContent), 0644); err != nil {
+		t.Fatalf("Failed to write temp file: %v", err)
+	}
+
+	config, err := LoadConfig(tmpFile)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if config.Discovery.Instances.MaxInstances != 10_000 {
+		t.Errorf("expected 10000, got %d", config.Discovery.Instances.MaxInstances)
+	}
+}
+
+// Property 51: max-instances above 10,000 falls back to default
+func TestProperty_MaxInstancesAboveUpperBoundary(t *testing.T) {
+	yamlContent := fmt.Sprintf(`discovery:
+  regions:
+    - us-west-2
+  instances:
+    max-instances: %d
+`, 10_001)
+
+	tmpDir := t.TempDir()
+	tmpFile := filepath.Join(tmpDir, "config.yml")
+	if err := os.WriteFile(tmpFile, []byte(yamlContent), 0644); err != nil {
+		t.Fatalf("Failed to write temp file: %v", err)
+	}
+
+	config, err := LoadConfig(tmpFile)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if config.Discovery.Instances.MaxInstances != MaxInstances {
+		t.Errorf("expected default %d, got %d", MaxInstances, config.Discovery.Instances.MaxInstances)
+	}
+}
+
 // Helper function to generate YAML region list
 func generateRegionList(regions []string) string {
 	result := ""
