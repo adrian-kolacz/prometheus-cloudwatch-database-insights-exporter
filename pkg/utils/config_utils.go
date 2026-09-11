@@ -18,9 +18,10 @@ import (
 )
 
 const (
-	MaxInstances         = 25
-	BatchSize            = 15
-	MaximumConcurrency   = 60
+	MaxInstances          = 25
+	MaxInstancesHardLimit = 10_000
+	BatchSize             = 15
+	MaximumConcurrency    = 60
 	DefaultConcurrency   = 4
 	MinTTL               = time.Minute
 	MaxTTL               = time.Hour * 24
@@ -203,7 +204,7 @@ func compileFilterConfig(config models.FilterConfig) (filter.Patterns, error) {
 }
 
 func parseInstancesConfig(config models.InstancesConfig) (models.ParsedInstancesConfig, error) {
-	maxInstances := GetOrDefault(config.MaxInstances, 1, 10_000, MaxInstances, "max-instances")
+	maxInstances := GetOrDefault(config.MaxInstances, 1, MaxInstancesHardLimit, MaxInstancesHardLimit, "max-instances")
 
 	// Parse instance discovery cache TTL
 	cacheTTL := DefaultInstanceTTL
