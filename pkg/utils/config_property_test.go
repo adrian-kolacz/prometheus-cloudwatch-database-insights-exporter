@@ -429,6 +429,42 @@ func TestProperty_HighConcurrencyDefault(t *testing.T) {
 	properties.TestingRun(t)
 }
 
+// Property 49: max-instances above default is accepted
+// Validates that values above the default (25) are no longer silently capped.
+func TestProperty_MaxInstancesAboveDefault(t *testing.T) {
+	parameters := gopter.DefaultTestParameters()
+	parameters.MinSuccessfulTests = 100
+	properties := gopter.NewProperties(parameters)
+
+	properties.Property("LoadConfig accepts max-instances values above default", prop.ForAll(
+		func(maxInstances int) bool {
+			yamlContent := fmt.Sprintf(`discovery:
+  regions:
+    - us-west-2
+  instances:
+    max-instances: %d
+`, maxInstances)
+
+			tmpDir := t.TempDir()
+			tmpFile := filepath.Join(tmpDir, "config.yml")
+
+			if err := os.WriteFile(tmpFile, []byte(yamlContent), 0644); err != nil {
+				t.Fatalf("Failed to write temp file: %v", err)
+			}
+
+			config, err := LoadConfig(tmpFile)
+			if err != nil {
+				return false
+			}
+
+			return config.Discovery.Instances.MaxInstances == maxInstances
+		},
+		gen.IntRange(MaxInstances+1, 1000),
+	))
+
+	properties.TestingRun(t)
+}
+
 // Helper function to generate YAML region list
 func generateRegionList(regions []string) string {
 	result := ""

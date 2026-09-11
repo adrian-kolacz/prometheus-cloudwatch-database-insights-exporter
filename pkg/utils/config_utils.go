@@ -203,7 +203,7 @@ func compileFilterConfig(config models.FilterConfig) (filter.Patterns, error) {
 }
 
 func parseInstancesConfig(config models.InstancesConfig) (models.ParsedInstancesConfig, error) {
-	maxInstances := GetOrDefault(config.MaxInstances, 1, MaxInstances, MaxInstances, "max-instances")
+	maxInstances := GetOrDefault(config.MaxInstances, 1, 10_000, MaxInstances, "max-instances")
 
 	// Parse instance discovery cache TTL
 	cacheTTL := DefaultInstanceTTL
