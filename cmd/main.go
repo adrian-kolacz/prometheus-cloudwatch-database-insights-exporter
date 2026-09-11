@@ -54,14 +54,16 @@ func main() {
 		metricsHandler(w, r, regionManager)
 	})
 
-	http.HandleFunc("/health", func(w http.ResponseWriter, r *http.Request) {
-		w.Header().Set("Content-Type", "application/json")
-		w.WriteHeader(http.StatusOK)
-		fmt.Fprintln(w, `{"status":"ok"}`)
-	})
+	http.HandleFunc("/health", healthHandler)
 
 	log.Printf("[MAIN] Starting HTTP server on port %d", cfg.Export.Port)
 	log.Fatal(http.ListenAndServe(fmt.Sprintf(":%d", cfg.Export.Port), nil))
+}
+
+func healthHandler(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusOK)
+	fmt.Fprintln(w, `{"status":"ok"}`)
 }
 
 func metricsHandler(w http.ResponseWriter, r *http.Request, regionManager region.RegionManager) {
