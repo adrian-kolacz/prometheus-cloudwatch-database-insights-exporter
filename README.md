@@ -9,6 +9,7 @@ As of Q4 2025, the exporter remains under active development. Current filtering 
 - **Auto-discovery**: Automatically discovers Aurora/RDS instances in specified AWS regions
 - **Instance filtering**: Query metrics for specific instances using URL parameters
 - **Prometheus-compatible**: Standard `/metrics` endpoint with Prometheus format
+- **Health endpoint**: Lightweight `/health` endpoint for Kubernetes liveness and readiness probes
 - **Low-latency collection**: Efficient metric collection from Amazon RDS Performance Insights API
 - **Simple configuration**: YAML-based configuration with sensible defaults
 
@@ -592,6 +593,34 @@ curl http://localhost:8081/metrics?identifiers=my-db1,mydb-2,my-db3,mydb-4,my-db
 ```
 
 **Note**: Limit of 5 instance identifiers when using the instance specific metrics endpoint.
+
+### Health Check
+
+The `/health` endpoint returns `200 OK` immediately without making any AWS API calls, making it safe to use as a Kubernetes liveness or readiness probe:
+
+```bash
+curl http://localhost:8081/health
+# {"status":"ok"}
+```
+
+### Kubernetes Deployment
+
+Use `/health` for liveness and readiness probes to avoid triggering expensive PI API scrapes on every probe hit:
+
+```yaml
+livenessProbe:
+  httpGet:
+    path: /health
+    port: 8081
+  initialDelaySeconds: 5
+  periodSeconds: 10
+readinessProbe:
+  httpGet:
+    path: /health
+    port: 8081
+  initialDelaySeconds: 5
+  periodSeconds: 10
+```
 
 ### Integration with Prometheus
 
