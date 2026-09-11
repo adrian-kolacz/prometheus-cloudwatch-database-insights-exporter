@@ -333,7 +333,7 @@ func parsedMetricsConfig(config models.MetricsConfig) (models.ParsedMetricsConfi
 }
 
 func parseProcessingConfig(config models.ProcessingConfig) models.ParsedProcessingConfig {
-	concurrency := GetOrDefault(config.Concurrency, 1, DefaultConcurrency, DefaultConcurrency, "concurrency")
+	concurrency := GetOrDefault(config.Concurrency, 1, MaximumConcurrency, DefaultConcurrency, "concurrency")
 
 	return models.ParsedProcessingConfig{
 		Concurrency: concurrency,
