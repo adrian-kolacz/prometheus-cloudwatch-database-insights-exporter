@@ -26,8 +26,9 @@ func NewRDSClient(region string) (*RDSClient, error) {
 }
 
 // NewRDSClientWithRole creates an RDS client that assumes the given IAM role before
-// calling the RDS API. If roleARN is empty it behaves identically to NewRDSClient.
-func NewRDSClientWithRole(region, roleARN string) (*RDSClient, error) {
+// calling the RDS API. externalID is optional (pass "" to omit). If roleARN is empty
+// it behaves identically to NewRDSClient.
+func NewRDSClientWithRole(region, roleARN, externalID string) (*RDSClient, error) {
 	if roleARN == "" {
 		return NewRDSClient(region)
 	}
@@ -40,14 +41,17 @@ func NewRDSClientWithRole(region, roleARN string) (*RDSClient, error) {
 	}
 
 	stsClient := sts.NewFromConfig(cfg)
-	client, _ := newRDSClientWithSTSClient(cfg, roleARN, stsClient)
-	log.Printf("[RDS] AWS config loaded, STS credential provider attached for role assumption, region: %s", region)
+	client, _ := newRDSClientWithSTSClient(cfg, roleARN, externalID, stsClient)
+	log.Printf("[RDS] STS credential provider attached for role assumption, region: %s", region)
 	return client, nil
 }
 
-func newRDSClientWithSTSClient(cfg aws.Config, roleARN string, stsClient stscreds.AssumeRoleAPIClient) (*RDSClient, *aws.CredentialsCache) {
+func newRDSClientWithSTSClient(cfg aws.Config, roleARN, externalID string, stsClient stscreds.AssumeRoleAPIClient) (*RDSClient, *aws.CredentialsCache) {
 	creds := stscreds.NewAssumeRoleProvider(stsClient, roleARN, func(o *stscreds.AssumeRoleOptions) {
 		o.RoleSessionName = "rds-pi-exporter"
+		if externalID != "" {
+			o.ExternalID = aws.String(externalID)
+		}
 	})
 	credCache := aws.NewCredentialsCache(creds)
 	cfg.Credentials = credCache
@@ -62,6 +66,7 @@ func NewRDSClientWithEndpoint(region, endpoint string) (*RDSClient, error) {
 		return nil, err
 	}
 
+	log.Printf("[RDS] AWS config loaded, region: %s", cfg.Region)
 	return newRDSClientFromConfig(cfg, endpoint), nil
 }
 
@@ -73,7 +78,6 @@ func newRDSClientFromConfig(cfg aws.Config, endpoint string) *RDSClient {
 		})
 		log.Printf("[RDS] Using custom endpoint: %s", endpoint)
 	}
-	log.Printf("[RDS] AWS config loaded, region: %s", cfg.Region)
 	return &RDSClient{client: client}
 }
 

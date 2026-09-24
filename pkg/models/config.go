@@ -16,7 +16,8 @@ type DiscoveryConfig struct {
 	Instances  InstancesConfig
 	Metrics    MetricsConfig
 	Processing ProcessingConfig
-	RoleARN    string `yaml:"role_arn,omitempty"`
+	RoleARN           string `yaml:"role_arn,omitempty"`
+	RoleARNExternalID string `yaml:"role_arn_external_id,omitempty"`
 }
 
 type ExportConfig struct {
@@ -78,7 +79,8 @@ type ParsedDiscoveryConfig struct {
 	Instances  ParsedInstancesConfig
 	Metrics    ParsedMetricsConfig
 	Processing ParsedProcessingConfig
-	RoleARN    string
+	RoleARN           string
+	RoleARNExternalID string
 }
 
 type ParsedExportConfig struct {

@@ -115,6 +115,7 @@ discovery:
   regions:
     - "us-west-2"
   role_arn: "arn:aws:iam::123456789012:role/pi-exporter-role"  # optional: assume role for cross-account access
+  role_arn_external_id: "my-external-id"                       # optional: ExternalID for confused-deputy mitigation
   instances:
     max-instances: 25
     cache:
@@ -158,6 +159,7 @@ Controls how the exporter discovers and monitors RDS/Aurora instances.
 |-------|------|------------------|---------|-------------|
 | `regions` | array | Required | `["us-west-2"]` | List of AWS regions to scan for RDS/Aurora instances. **Note**: Only the first region is currently used (single-region support only) |
 | `role_arn` | string | Optional | `""` | IAM role ARN to assume before calling AWS APIs. Use for cross-account access. The exporter's own IAM identity (e.g., IRSA service account) must have `sts:AssumeRole` permission on this role. If empty, the default credential chain is used. |
+| `role_arn_external_id` | string | Optional | `""` | ExternalID condition for the AssumeRole call (confused-deputy mitigation). Only valid when `role_arn` is also set. Must match the `sts:ExternalId` condition in the target account's trust policy. |
 | `instances.max-instances` | integer | Optional | `25` | Maximum number of instances to monitor. When this limit is exceeded, only the oldest `max-instances` are selected |
 | `instances.cache.ttl` | string | Optional | `"5m"` | Time-to-live for cached instance discovery results. How long to cache the list of RDS/Aurora instances before re-discovering |
 | `instances.include` | map | Optional | `{}` | Map of field names to regex pattern arrays for instance filtering (allowlist mode). Supported fields: `identifier`, `engine`, `tag.<TagKey>` (e.g., `tag.Environment`, `tag.Team`) |

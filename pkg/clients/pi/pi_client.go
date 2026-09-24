@@ -32,8 +32,9 @@ func NewPIClient(region string) (*PIClient, error) {
 }
 
 // NewPIClientWithRole creates a PI client that assumes the given IAM role before
-// calling the Performance Insights API. If roleARN is empty it behaves identically to NewPIClient.
-func NewPIClientWithRole(region, roleARN string) (*PIClient, error) {
+// calling the Performance Insights API. externalID is optional (pass "" to omit).
+// If roleARN is empty it behaves identically to NewPIClient.
+func NewPIClientWithRole(region, roleARN, externalID string) (*PIClient, error) {
 	if roleARN == "" {
 		return NewPIClient(region)
 	}
@@ -46,14 +47,17 @@ func NewPIClientWithRole(region, roleARN string) (*PIClient, error) {
 	}
 
 	stsClient := sts.NewFromConfig(cfg)
-	client, _ := newPIClientWithSTSClient(cfg, roleARN, stsClient)
-	log.Printf("[PI] AWS config loaded, STS credential provider attached for role assumption, region: %s", region)
+	client, _ := newPIClientWithSTSClient(cfg, roleARN, externalID, stsClient)
+	log.Printf("[PI] STS credential provider attached for role assumption, region: %s", region)
 	return client, nil
 }
 
-func newPIClientWithSTSClient(cfg aws.Config, roleARN string, stsClient stscreds.AssumeRoleAPIClient) (*PIClient, *aws.CredentialsCache) {
+func newPIClientWithSTSClient(cfg aws.Config, roleARN, externalID string, stsClient stscreds.AssumeRoleAPIClient) (*PIClient, *aws.CredentialsCache) {
 	creds := stscreds.NewAssumeRoleProvider(stsClient, roleARN, func(o *stscreds.AssumeRoleOptions) {
 		o.RoleSessionName = "rds-pi-exporter"
+		if externalID != "" {
+			o.ExternalID = aws.String(externalID)
+		}
 	})
 	credCache := aws.NewCredentialsCache(creds)
 	cfg.Credentials = credCache
@@ -68,6 +72,7 @@ func NewPIClientWithEndpoint(region, endpoint string) (*PIClient, error) {
 		return nil, err
 	}
 
+	log.Printf("[PI] AWS config loaded, region: %s", cfg.Region)
 	return newPIClientFromConfig(cfg, endpoint), nil
 }
 
@@ -79,7 +84,6 @@ func newPIClientFromConfig(cfg aws.Config, endpoint string) *PIClient {
 		})
 		log.Printf("[PI] Using custom endpoint: %s", endpoint)
 	}
-	log.Printf("[PI] AWS config loaded, region: %s", cfg.Region)
 	return &PIClient{client: client}
 }
 
