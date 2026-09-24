@@ -8,8 +8,10 @@ import (
 
 	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/config"
+	"github.com/aws/aws-sdk-go-v2/credentials/stscreds"
 	"github.com/aws/aws-sdk-go-v2/service/pi"
 	"github.com/aws/aws-sdk-go-v2/service/pi/types"
+	"github.com/aws/aws-sdk-go-v2/service/sts"
 
 	"github.com/awslabs/prometheus-cloudwatch-database-insights-exporter/pkg/models"
 	"github.com/awslabs/prometheus-cloudwatch-database-insights-exporter/pkg/utils"
@@ -29,6 +31,30 @@ func NewPIClient(region string) (*PIClient, error) {
 	return NewPIClientWithEndpoint(region, "")
 }
 
+// NewPIClientWithRole creates a PI client that assumes the given IAM role before
+// calling the Performance Insights API. If roleARN is empty it behaves identically to NewPIClient.
+func NewPIClientWithRole(region, roleARN string) (*PIClient, error) {
+	if roleARN == "" {
+		return NewPIClient(region)
+	}
+
+	log.Printf("[PI] Creating new PI client with assumed role: %s", roleARN)
+	cfg, err := config.LoadDefaultConfig(context.TODO(), config.WithRegion(region))
+	if err != nil {
+		log.Printf("[PI] FATAL: Failed to load AWS config: %v", err)
+		return nil, err
+	}
+
+	stsClient := sts.NewFromConfig(cfg)
+	creds := stscreds.NewAssumeRoleProvider(stsClient, roleARN, func(o *stscreds.AssumeRoleOptions) {
+		o.RoleSessionName = "rds-pi-exporter"
+	})
+	cfg.Credentials = aws.NewCredentialsCache(creds)
+
+	log.Printf("[PI] AWS config loaded with assumed role, region: %s", region)
+	return newPIClientFromConfig(cfg, ""), nil
+}
+
 func NewPIClientWithEndpoint(region, endpoint string) (*PIClient, error) {
 	log.Println("[PI] Creating new PI client...")
 	cfg, err := config.LoadDefaultConfig(context.TODO(), config.WithRegion(region))
@@ -37,6 +63,10 @@ func NewPIClientWithEndpoint(region, endpoint string) (*PIClient, error) {
 		return nil, err
 	}
 
+	return newPIClientFromConfig(cfg, endpoint), nil
+}
+
+func newPIClientFromConfig(cfg aws.Config, endpoint string) *PIClient {
 	client := pi.NewFromConfig(cfg)
 	if endpoint != "" {
 		client = pi.NewFromConfig(cfg, func(o *pi.Options) {
@@ -44,11 +74,8 @@ func NewPIClientWithEndpoint(region, endpoint string) (*PIClient, error) {
 		})
 		log.Printf("[PI] Using custom endpoint: %s", endpoint)
 	}
-
-	log.Printf("[PI] AWS config loaded, region: %s", region)
-	return &PIClient{
-		client: client,
-	}, nil
+	log.Printf("[PI] AWS config loaded, region: %s", cfg.Region)
+	return &PIClient{client: client}
 }
 
 func (piClient *PIClient) ListAvailableResourceMetrics(ctx context.Context, resourceID string) (*pi.ListAvailableResourceMetricsOutput, error) {

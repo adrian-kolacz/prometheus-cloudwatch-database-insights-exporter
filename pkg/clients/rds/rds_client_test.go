@@ -28,6 +28,24 @@ func TestNewRDSClient(t *testing.T) {
 	})
 }
 
+func TestNewRDSClientWithRole(t *testing.T) {
+	t.Run("empty roleARN behaves like NewRDSClient", func(t *testing.T) {
+		rdsClient, err := NewRDSClientWithRole(testutils.TestRegion, "")
+		assert.NoError(t, err)
+		assert.NotNil(t, rdsClient)
+		assert.NotNil(t, rdsClient.client)
+	})
+
+	t.Run("non-empty roleARN constructs client without network calls", func(t *testing.T) {
+		// AssumeRole is lazy — STS is not called until the first API request,
+		// so construction succeeds even without reachable AWS credentials.
+		rdsClient, err := NewRDSClientWithRole(testutils.TestRegion, "arn:aws:iam::123456789012:role/TestRole")
+		assert.NoError(t, err)
+		assert.NotNil(t, rdsClient)
+		assert.NotNil(t, rdsClient.client)
+	})
+}
+
 func TestDescribeDBInstancesPaginatorIntegration(t *testing.T) {
 	testCases := []struct {
 		name            string

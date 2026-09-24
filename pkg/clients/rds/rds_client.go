@@ -6,8 +6,10 @@ import (
 
 	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/config"
+	"github.com/aws/aws-sdk-go-v2/credentials/stscreds"
 	"github.com/aws/aws-sdk-go-v2/service/rds"
 	"github.com/aws/aws-sdk-go-v2/service/rds/types"
+	"github.com/aws/aws-sdk-go-v2/service/sts"
 )
 
 type RDSClient struct {
@@ -23,6 +25,30 @@ func NewRDSClient(region string) (*RDSClient, error) {
 	return NewRDSClientWithEndpoint(region, "")
 }
 
+// NewRDSClientWithRole creates an RDS client that assumes the given IAM role before
+// calling the RDS API. If roleARN is empty it behaves identically to NewRDSClient.
+func NewRDSClientWithRole(region, roleARN string) (*RDSClient, error) {
+	if roleARN == "" {
+		return NewRDSClient(region)
+	}
+
+	log.Printf("[RDS] Creating new RDS client with assumed role: %s", roleARN)
+	cfg, err := config.LoadDefaultConfig(context.TODO(), config.WithRegion(region))
+	if err != nil {
+		log.Printf("[RDS] FATAL: Failed to load AWS config: %v", err)
+		return nil, err
+	}
+
+	stsClient := sts.NewFromConfig(cfg)
+	creds := stscreds.NewAssumeRoleProvider(stsClient, roleARN, func(o *stscreds.AssumeRoleOptions) {
+		o.RoleSessionName = "rds-pi-exporter"
+	})
+	cfg.Credentials = aws.NewCredentialsCache(creds)
+
+	log.Printf("[RDS] AWS config loaded with assumed role, region: %s", region)
+	return newRDSClientFromConfig(cfg, ""), nil
+}
+
 func NewRDSClientWithEndpoint(region, endpoint string) (*RDSClient, error) {
 	log.Println("[RDS] Creating new RDS client...")
 	cfg, err := config.LoadDefaultConfig(context.TODO(), config.WithRegion(region))
@@ -31,6 +57,10 @@ func NewRDSClientWithEndpoint(region, endpoint string) (*RDSClient, error) {
 		return nil, err
 	}
 
+	return newRDSClientFromConfig(cfg, endpoint), nil
+}
+
+func newRDSClientFromConfig(cfg aws.Config, endpoint string) *RDSClient {
 	client := rds.NewFromConfig(cfg)
 	if endpoint != "" {
 		client = rds.NewFromConfig(cfg, func(o *rds.Options) {
@@ -38,11 +68,8 @@ func NewRDSClientWithEndpoint(region, endpoint string) (*RDSClient, error) {
 		})
 		log.Printf("[RDS] Using custom endpoint: %s", endpoint)
 	}
-
-	log.Printf("[RDS] AWS config loaded, region: %s", region)
-	return &RDSClient{
-		client: client,
-	}, nil
+	log.Printf("[RDS] AWS config loaded, region: %s", cfg.Region)
+	return &RDSClient{client: client}
 }
 
 func (rdsClient *RDSClient) DescribeDBInstancesPaginator(ctx context.Context) ([]types.DBInstance, error) {

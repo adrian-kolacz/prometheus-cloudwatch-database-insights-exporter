@@ -237,6 +237,70 @@ export:
 	}
 }
 
+func TestLoadConfigRoleARN(t *testing.T) {
+	testCases := []struct {
+		name          string
+		configContent string
+		expectedError bool
+		validate      func(*testing.T, *models.ParsedConfig)
+	}{
+		{
+			name: "config with role_arn is parsed and propagated",
+			configContent: `discovery:
+  regions:
+  - us-east-1
+  role_arn: "arn:aws:iam::123456789012:role/CrossAccountRole"
+  metrics:
+    statistic: "avg"
+export:
+  port: 8081`,
+			expectedError: false,
+			validate: func(t *testing.T, cfg *models.ParsedConfig) {
+				assert.Equal(t, "arn:aws:iam::123456789012:role/CrossAccountRole", cfg.Discovery.RoleARN)
+			},
+		},
+		{
+			name: "config without role_arn has empty RoleARN",
+			configContent: `discovery:
+  regions:
+  - us-east-1
+  metrics:
+    statistic: "avg"
+export:
+  port: 8081`,
+			expectedError: false,
+			validate: func(t *testing.T, cfg *models.ParsedConfig) {
+				assert.Empty(t, cfg.Discovery.RoleARN)
+			},
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			tmpFile, err := os.CreateTemp("", "config-*.yml")
+			assert.NoError(t, err)
+			defer os.Remove(tmpFile.Name())
+
+			_, err = tmpFile.WriteString(tc.configContent)
+			assert.NoError(t, err)
+			tmpFile.Close()
+
+			config, err := LoadConfig(tmpFile.Name())
+
+			if tc.expectedError {
+				assert.Error(t, err)
+				assert.Nil(t, config)
+			} else {
+				assert.NoError(t, err)
+				assert.NotNil(t, config)
+				if tc.validate != nil {
+					tc.validate(t, config)
+				}
+			}
+		})
+	}
+}
+
 func TestCreateDefaultConfig(t *testing.T) {
 	config := createDefaultConfig()
 
