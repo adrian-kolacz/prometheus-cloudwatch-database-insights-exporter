@@ -3,6 +3,11 @@ package pi
 import (
 	"context"
 	"fmt"
+	"io"
+	"net/http"
+	"net/http/httptest"
+	"strings"
+	"sync"
 	"testing"
 
 	"github.com/aws/aws-sdk-go-v2/aws"
@@ -99,4 +104,52 @@ func TestNewPIClientWithSTSClient(t *testing.T) {
 		assert.True(t, mockSTS.Called())
 		assert.Contains(t, err.Error(), "AccessDenied")
 	})
+}
+
+func TestNewPIClientWithRoleEndToEnd(t *testing.T) {
+	var (
+		mu           sync.Mutex
+		stsCallCount int
+		piAuthHeader string
+	)
+
+	const stsXML = `<AssumeRoleResponse xmlns="https://sts.amazonaws.com/doc/2011-06-15/"><AssumeRoleResult><Credentials><AccessKeyId>ASIAIOSFODNN7EXAMPLE</AccessKeyId><SecretAccessKey>wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY</SecretAccessKey><SessionToken>assumed-session-token</SessionToken><Expiration>2030-01-01T00:00:00Z</Expiration></Credentials><AssumedRoleUser><Arn>arn:aws:sts::123456789012:assumed-role/TestRole/rds-pi-exporter/pi</Arn><AssumedRoleId>AROATEST:rds-pi-exporter/pi</AssumedRoleId></AssumedRoleUser></AssumeRoleResult><ResponseMetadata><RequestId>test</RequestId></ResponseMetadata></AssumeRoleResponse>`
+	const piJSON = `{"Metrics":[]}`
+
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if strings.HasPrefix(r.Header.Get("Content-Type"), "application/x-amz-json") {
+			auth := r.Header.Get("Authorization")
+			mu.Lock()
+			piAuthHeader = auth
+			mu.Unlock()
+			w.Header().Set("Content-Type", "application/x-amz-json-1.1")
+			fmt.Fprint(w, piJSON)
+		} else {
+			body, _ := io.ReadAll(r.Body)
+			if strings.Contains(string(body), "AssumeRole") {
+				mu.Lock()
+				stsCallCount++
+				mu.Unlock()
+				w.Header().Set("Content-Type", "text/xml")
+				fmt.Fprint(w, stsXML)
+			}
+		}
+	}))
+	defer server.Close()
+
+	t.Setenv("AWS_ENDPOINT_URL", server.URL)
+	t.Setenv("AWS_ACCESS_KEY_ID", "AKIDBASE")
+	t.Setenv("AWS_SECRET_ACCESS_KEY", "SECRETBASE")
+	t.Setenv("AWS_SESSION_TOKEN", "")
+
+	piClient, err := NewPIClientWithRole(testutils.TestRegion, "arn:aws:iam::123456789012:role/TestRole", "")
+	require.NoError(t, err)
+
+	_, err = piClient.ListAvailableResourceMetrics(context.Background(), "db-TESTRESOURCEID")
+	require.NoError(t, err)
+
+	mu.Lock()
+	defer mu.Unlock()
+	assert.Equal(t, 1, stsCallCount, "STS AssumeRole should have been called exactly once")
+	assert.Contains(t, piAuthHeader, "ASIAIOSFODNN7EXAMPLE", "PI request should use assumed role credentials, not base credentials")
 }
