@@ -36,12 +36,12 @@ func NewRDSClientWithRole(region, roleARN, externalID string) (*RDSClient, error
 	log.Printf("[RDS] Creating new RDS client with assumed role: %s", roleARN)
 	cfg, err := config.LoadDefaultConfig(context.TODO(), config.WithRegion(region))
 	if err != nil {
-		log.Printf("[RDS] FATAL: Failed to load AWS config: %v", err)
+		log.Printf("[RDS] ERROR: Failed to load AWS config: %v", err)
 		return nil, err
 	}
 
 	stsClient := sts.NewFromConfig(cfg)
-	client, _ := newRDSClientWithSTSClient(cfg, roleARN, externalID, stsClient)
+	client, _ := newRDSClientWithSTSClient(cfg, roleARN, externalID, stsClient) // credCache only needed in tests
 	log.Printf("[RDS] STS credential provider attached for role assumption, region: %s", region)
 	return client, nil
 }

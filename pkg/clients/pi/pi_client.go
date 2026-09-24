@@ -42,12 +42,12 @@ func NewPIClientWithRole(region, roleARN, externalID string) (*PIClient, error) 
 	log.Printf("[PI] Creating new PI client with assumed role: %s", roleARN)
 	cfg, err := config.LoadDefaultConfig(context.TODO(), config.WithRegion(region))
 	if err != nil {
-		log.Printf("[PI] FATAL: Failed to load AWS config: %v", err)
+		log.Printf("[PI] ERROR: Failed to load AWS config: %v", err)
 		return nil, err
 	}
 
 	stsClient := sts.NewFromConfig(cfg)
-	client, _ := newPIClientWithSTSClient(cfg, roleARN, externalID, stsClient)
+	client, _ := newPIClientWithSTSClient(cfg, roleARN, externalID, stsClient) // credCache only needed in tests
 	log.Printf("[PI] STS credential provider attached for role assumption, region: %s", region)
 	return client, nil
 }
