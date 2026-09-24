@@ -155,6 +155,9 @@ func parsedValidateConfig(config *models.Config) (*models.ParsedConfig, error) {
 			return nil, fmt.Errorf("invalid discovery.role_arn %q: expected format arn:aws*:iam::<12-digit-account>:role/<name>", roleARN)
 		}
 		parsedConfig.Discovery.RoleARN = roleARN
+		parsedConfig.Discovery.RoleARNExternalID = config.Discovery.RoleARNExternalID
+	} else if config.Discovery.RoleARNExternalID != "" {
+		return nil, fmt.Errorf("discovery.role_arn_external_id requires discovery.role_arn to be set")
 	}
 
 	exportConfig, err := parseExportConfig(config.Export)

@@ -16,15 +16,19 @@ import (
 var _ stscreds.AssumeRoleAPIClient = (*MockSTSClient)(nil)
 
 type MockSTSClient struct {
-	mu        sync.Mutex
-	wasCalled bool
-	ReturnErr error
+	mu                 sync.Mutex
+	wasCalled          bool
+	CapturedExternalID string // set to the ExternalId value from the AssumeRole call, if any
+	ReturnErr          error
 }
 
-func (m *MockSTSClient) AssumeRole(_ context.Context, _ *sts.AssumeRoleInput, _ ...func(*sts.Options)) (*sts.AssumeRoleOutput, error) {
+func (m *MockSTSClient) AssumeRole(_ context.Context, params *sts.AssumeRoleInput, _ ...func(*sts.Options)) (*sts.AssumeRoleOutput, error) {
 	m.mu.Lock()
 	defer m.mu.Unlock()
 	m.wasCalled = true
+	if params.ExternalId != nil {
+		m.CapturedExternalID = *params.ExternalId
+	}
 	if m.ReturnErr != nil {
 		return nil, m.ReturnErr
 	}

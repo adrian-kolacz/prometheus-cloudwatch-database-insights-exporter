@@ -297,6 +297,65 @@ export:
   port: 8081`,
 			expectedError: true,
 		},
+		{
+			name: "China partition role_arn is accepted",
+			configContent: `discovery:
+  regions:
+  - cn-north-1
+  role_arn: "arn:aws-cn:iam::123456789012:role/CrossAccountRole"
+  metrics:
+    statistic: "avg"
+export:
+  port: 8081`,
+			expectedError: false,
+			validate: func(t *testing.T, cfg *models.ParsedConfig) {
+				assert.Equal(t, "arn:aws-cn:iam::123456789012:role/CrossAccountRole", cfg.Discovery.RoleARN)
+			},
+		},
+		{
+			name: "GovCloud partition role_arn is accepted",
+			configContent: `discovery:
+  regions:
+  - us-gov-west-1
+  role_arn: "arn:aws-us-gov:iam::123456789012:role/CrossAccountRole"
+  metrics:
+    statistic: "avg"
+export:
+  port: 8081`,
+			expectedError: false,
+			validate: func(t *testing.T, cfg *models.ParsedConfig) {
+				assert.Equal(t, "arn:aws-us-gov:iam::123456789012:role/CrossAccountRole", cfg.Discovery.RoleARN)
+			},
+		},
+		{
+			name: "role_arn_external_id without role_arn returns error at parse time",
+			configContent: `discovery:
+  regions:
+  - us-east-1
+  role_arn_external_id: "some-external-id"
+  metrics:
+    statistic: "avg"
+export:
+  port: 8081`,
+			expectedError: true,
+		},
+		{
+			name: "role_arn_external_id with role_arn is propagated",
+			configContent: `discovery:
+  regions:
+  - us-east-1
+  role_arn: "arn:aws:iam::123456789012:role/CrossAccountRole"
+  role_arn_external_id: "my-external-id"
+  metrics:
+    statistic: "avg"
+export:
+  port: 8081`,
+			expectedError: false,
+			validate: func(t *testing.T, cfg *models.ParsedConfig) {
+				assert.Equal(t, "arn:aws:iam::123456789012:role/CrossAccountRole", cfg.Discovery.RoleARN)
+				assert.Equal(t, "my-external-id", cfg.Discovery.RoleARNExternalID)
+			},
+		},
 	}
 
 	for _, tc := range testCases {

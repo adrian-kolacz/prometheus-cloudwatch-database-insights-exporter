@@ -25,7 +25,7 @@ func TestNewPIClient(t *testing.T) {
 
 func TestNewPIClientWithRole(t *testing.T) {
 	t.Run("empty roleARN behaves like NewPIClient", func(t *testing.T) {
-		piClient, err := NewPIClientWithRole(testutils.TestRegion, "")
+		piClient, err := NewPIClientWithRole(testutils.TestRegion, "", "")
 		assert.NoError(t, err)
 		assert.NotNil(t, piClient)
 		assert.NotNil(t, piClient.client)
@@ -34,7 +34,7 @@ func TestNewPIClientWithRole(t *testing.T) {
 	t.Run("non-empty roleARN constructs client without network calls", func(t *testing.T) {
 		// AssumeRole is lazy — STS is not called until the first API request,
 		// so construction succeeds even without reachable AWS credentials.
-		piClient, err := NewPIClientWithRole(testutils.TestRegion, "arn:aws:iam::123456789012:role/TestRole")
+		piClient, err := NewPIClientWithRole(testutils.TestRegion, "arn:aws:iam::123456789012:role/TestRole", "")
 		assert.NoError(t, err)
 		assert.NotNil(t, piClient)
 		assert.NotNil(t, piClient.client)
@@ -55,7 +55,7 @@ func TestNewPIClientWithSTSClient(t *testing.T) {
 	t.Run("AssumeRole is called on first credential retrieval and returns expected credentials", func(t *testing.T) {
 		mockSTS := &testutils.MockSTSClient{}
 
-		piClient, credCache := newPIClientWithSTSClient(newCfg(t), "arn:aws:iam::123456789012:role/TestRole", mockSTS)
+		piClient, credCache := newPIClientWithSTSClient(newCfg(t), "arn:aws:iam::123456789012:role/TestRole", "", mockSTS)
 		require.NotNil(t, piClient)
 		require.NotNil(t, piClient.client)
 
@@ -69,10 +69,30 @@ func TestNewPIClientWithSTSClient(t *testing.T) {
 		assert.Equal(t, "session-token", creds.SessionToken)
 	})
 
+	t.Run("ExternalID is forwarded to AssumeRole when set", func(t *testing.T) {
+		mockSTS := &testutils.MockSTSClient{}
+
+		_, credCache := newPIClientWithSTSClient(newCfg(t), "arn:aws:iam::123456789012:role/TestRole", "my-external-id", mockSTS)
+
+		_, err := credCache.Retrieve(context.TODO())
+		require.NoError(t, err)
+		assert.Equal(t, "my-external-id", mockSTS.CapturedExternalID)
+	})
+
+	t.Run("ExternalID is not sent when empty", func(t *testing.T) {
+		mockSTS := &testutils.MockSTSClient{}
+
+		_, credCache := newPIClientWithSTSClient(newCfg(t), "arn:aws:iam::123456789012:role/TestRole", "", mockSTS)
+
+		_, err := credCache.Retrieve(context.TODO())
+		require.NoError(t, err)
+		assert.Empty(t, mockSTS.CapturedExternalID)
+	})
+
 	t.Run("AssumeRole error is propagated through credential retrieval", func(t *testing.T) {
 		mockSTS := &testutils.MockSTSClient{ReturnErr: fmt.Errorf("AccessDenied: not authorized to assume role")}
 
-		_, credCache := newPIClientWithSTSClient(newCfg(t), "arn:aws:iam::123456789012:role/TestRole", mockSTS)
+		_, credCache := newPIClientWithSTSClient(newCfg(t), "arn:aws:iam::123456789012:role/TestRole", "", mockSTS)
 
 		_, err := credCache.Retrieve(context.TODO())
 		assert.Error(t, err)
