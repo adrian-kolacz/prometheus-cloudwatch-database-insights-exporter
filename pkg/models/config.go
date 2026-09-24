@@ -12,10 +12,10 @@ type Config struct {
 }
 
 type DiscoveryConfig struct {
-	Regions    []string
-	Instances  InstancesConfig
-	Metrics    MetricsConfig
-	Processing ProcessingConfig
+	Regions           []string
+	Instances         InstancesConfig
+	Metrics           MetricsConfig
+	Processing        ProcessingConfig
 	RoleARN           string `yaml:"role_arn,omitempty"`
 	RoleARNExternalID string `yaml:"role_arn_external_id,omitempty"`
 }
@@ -26,10 +26,10 @@ type ExportConfig struct {
 }
 
 type InstancesConfig struct {
-	MaxInstances int                `yaml:"max-instances"`
+	MaxInstances int                  `yaml:"max-instances"`
 	Cache        InstancesCacheConfig `yaml:"cache,omitempty"`
-	Include      FilterConfig       `yaml:"include,omitempty"`
-	Exclude      FilterConfig       `yaml:"exclude,omitempty"`
+	Include      FilterConfig         `yaml:"include,omitempty"`
+	Exclude      FilterConfig         `yaml:"exclude,omitempty"`
 }
 
 type InstancesCacheConfig struct {
@@ -75,10 +75,10 @@ type ParsedConfig struct {
 }
 
 type ParsedDiscoveryConfig struct {
-	Regions    []string
-	Instances  ParsedInstancesConfig
-	Metrics    ParsedMetricsConfig
-	Processing ParsedProcessingConfig
+	Regions           []string
+	Instances         ParsedInstancesConfig
+	Metrics           ParsedMetricsConfig
+	Processing        ParsedProcessingConfig
 	RoleARN           string
 	RoleARNExternalID string
 }

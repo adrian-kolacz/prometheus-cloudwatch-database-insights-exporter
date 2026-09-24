@@ -46,9 +46,11 @@ func NewRDSClientWithRole(region, roleARN, externalID string) (*RDSClient, error
 	return client, nil
 }
 
+// newRDSClientWithSTSClient intentionally mirrors newPIClientWithSTSClient in pi_client.go.
+// Keep both in sync when changing AssumeRoleOptions.
 func newRDSClientWithSTSClient(cfg aws.Config, roleARN, externalID string, stsClient stscreds.AssumeRoleAPIClient) (*RDSClient, *aws.CredentialsCache) {
 	creds := stscreds.NewAssumeRoleProvider(stsClient, roleARN, func(o *stscreds.AssumeRoleOptions) {
-		o.RoleSessionName = "rds-pi-exporter"
+		o.RoleSessionName = "rds-pi-exporter/rds"
 		if externalID != "" {
 			o.ExternalID = aws.String(externalID)
 		}
