@@ -46,13 +46,18 @@ func NewPIClientWithRole(region, roleARN string) (*PIClient, error) {
 	}
 
 	stsClient := sts.NewFromConfig(cfg)
+	log.Printf("[PI] AWS config loaded with assumed role, region: %s", region)
+	client, _ := newPIClientWithSTSClient(cfg, roleARN, stsClient)
+	return client, nil
+}
+
+func newPIClientWithSTSClient(cfg aws.Config, roleARN string, stsClient stscreds.AssumeRoleAPIClient) (*PIClient, *aws.CredentialsCache) {
 	creds := stscreds.NewAssumeRoleProvider(stsClient, roleARN, func(o *stscreds.AssumeRoleOptions) {
 		o.RoleSessionName = "rds-pi-exporter"
 	})
-	cfg.Credentials = aws.NewCredentialsCache(creds)
-
-	log.Printf("[PI] AWS config loaded with assumed role, region: %s", region)
-	return newPIClientFromConfig(cfg, ""), nil
+	credCache := aws.NewCredentialsCache(creds)
+	cfg.Credentials = credCache
+	return newPIClientFromConfig(cfg, ""), credCache
 }
 
 func NewPIClientWithEndpoint(region, endpoint string) (*PIClient, error) {
