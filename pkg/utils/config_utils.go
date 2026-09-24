@@ -146,6 +146,7 @@ func parsedValidateConfig(config *models.Config) (*models.ParsedConfig, error) {
 	parsedConfig.Discovery.Metrics = metricsConfig
 
 	parsedConfig.Discovery.Processing = parseProcessingConfig(config.Discovery.Processing)
+	parsedConfig.Discovery.RoleARN = config.Discovery.RoleARN
 
 	exportConfig, err := parseExportConfig(config.Export)
 	if err != nil {

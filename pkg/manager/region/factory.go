@@ -36,11 +36,13 @@ func (factory *RegionManagerFactory) CreateRegionManager(config *models.ParsedCo
 }
 
 func (factory *RegionManagerFactory) createSingleRegionManager(region string, config *models.ParsedConfig) (RegionManager, error) {
-	rdsClient, err := rds.NewRDSClient(region)
+	roleARN := config.Discovery.RoleARN
+
+	rdsClient, err := rds.NewRDSClientWithRole(region, roleARN)
 	if err != nil {
 		return nil, err
 	}
-	piClient, err := pi.NewPIClient(region)
+	piClient, err := pi.NewPIClientWithRole(region, roleARN)
 	if err != nil {
 		return nil, err
 	}

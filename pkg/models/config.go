@@ -16,6 +16,7 @@ type DiscoveryConfig struct {
 	Instances  InstancesConfig
 	Metrics    MetricsConfig
 	Processing ProcessingConfig
+	RoleARN    string `yaml:"role_arn,omitempty"`
 }
 
 type ExportConfig struct {
@@ -77,6 +78,7 @@ type ParsedDiscoveryConfig struct {
 	Instances  ParsedInstancesConfig
 	Metrics    ParsedMetricsConfig
 	Processing ParsedProcessingConfig
+	RoleARN    string
 }
 
 type ParsedExportConfig struct {
