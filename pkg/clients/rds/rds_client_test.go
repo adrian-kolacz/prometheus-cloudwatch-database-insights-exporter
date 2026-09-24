@@ -3,6 +3,11 @@ package rds
 import (
 	"context"
 	"fmt"
+	"io"
+	"net/http"
+	"net/http/httptest"
+	"strings"
+	"sync"
 	"testing"
 
 	"github.com/aws/aws-sdk-go-v2/aws"
@@ -109,6 +114,51 @@ func TestNewRDSClientWithSTSClient(t *testing.T) {
 		assert.True(t, mockSTS.Called())
 		assert.Contains(t, err.Error(), "AccessDenied")
 	})
+}
+
+func TestNewRDSClientWithRoleEndToEnd(t *testing.T) {
+	var (
+		mu            sync.Mutex
+		stsCallCount  int
+		rdsAuthHeader string
+	)
+
+	const stsXML = `<AssumeRoleResponse xmlns="https://sts.amazonaws.com/doc/2011-06-15/"><AssumeRoleResult><Credentials><AccessKeyId>ASIAIOSFODNN7EXAMPLE</AccessKeyId><SecretAccessKey>wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY</SecretAccessKey><SessionToken>assumed-session-token</SessionToken><Expiration>2030-01-01T00:00:00Z</Expiration></Credentials><AssumedRoleUser><Arn>arn:aws:sts::123456789012:assumed-role/TestRole/rds-pi-exporter/rds</Arn><AssumedRoleId>AROATEST:rds-pi-exporter/rds</AssumedRoleId></AssumedRoleUser></AssumeRoleResult><ResponseMetadata><RequestId>test</RequestId></ResponseMetadata></AssumeRoleResponse>`
+	const rdsXML = `<DescribeDBInstancesResponse xmlns="http://rds.amazonaws.com/doc/2014-10-31/"><DescribeDBInstancesResult><DBInstances/></DescribeDBInstancesResult><ResponseMetadata><RequestId>test</RequestId></ResponseMetadata></DescribeDBInstancesResponse>`
+
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		body, _ := io.ReadAll(r.Body)
+		w.Header().Set("Content-Type", "text/xml")
+		if strings.Contains(string(body), "AssumeRole") {
+			mu.Lock()
+			stsCallCount++
+			mu.Unlock()
+			fmt.Fprint(w, stsXML)
+		} else {
+			auth := r.Header.Get("Authorization")
+			mu.Lock()
+			rdsAuthHeader = auth
+			mu.Unlock()
+			fmt.Fprint(w, rdsXML)
+		}
+	}))
+	defer server.Close()
+
+	t.Setenv("AWS_ENDPOINT_URL", server.URL)
+	t.Setenv("AWS_ACCESS_KEY_ID", "AKIDBASE")
+	t.Setenv("AWS_SECRET_ACCESS_KEY", "SECRETBASE")
+	t.Setenv("AWS_SESSION_TOKEN", "")
+
+	rdsClient, err := NewRDSClientWithRole(testutils.TestRegion, "arn:aws:iam::123456789012:role/TestRole", "")
+	require.NoError(t, err)
+
+	_, err = rdsClient.DescribeDBInstancesPaginator(context.Background())
+	require.NoError(t, err)
+
+	mu.Lock()
+	defer mu.Unlock()
+	assert.Equal(t, 1, stsCallCount, "STS AssumeRole should have been called exactly once")
+	assert.Contains(t, rdsAuthHeader, "ASIAIOSFODNN7EXAMPLE", "RDS request should use assumed role credentials, not base credentials")
 }
 
 func TestDescribeDBInstancesPaginatorIntegration(t *testing.T) {
