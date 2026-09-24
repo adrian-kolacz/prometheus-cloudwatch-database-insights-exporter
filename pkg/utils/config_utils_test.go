@@ -273,6 +273,30 @@ export:
 				assert.Empty(t, cfg.Discovery.RoleARN)
 			},
 		},
+		{
+			name: "invalid role_arn format returns error at parse time",
+			configContent: `discovery:
+  regions:
+  - us-east-1
+  role_arn: "not-an-arn"
+  metrics:
+    statistic: "avg"
+export:
+  port: 8081`,
+			expectedError: true,
+		},
+		{
+			name: "role_arn missing account ID returns error at parse time",
+			configContent: `discovery:
+  regions:
+  - us-east-1
+  role_arn: "arn:aws:iam:::role/MissingAccount"
+  metrics:
+    statistic: "avg"
+export:
+  port: 8081`,
+			expectedError: true,
+		},
 	}
 
 	for _, tc := range testCases {

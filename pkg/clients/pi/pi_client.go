@@ -46,8 +46,8 @@ func NewPIClientWithRole(region, roleARN string) (*PIClient, error) {
 	}
 
 	stsClient := sts.NewFromConfig(cfg)
-	log.Printf("[PI] AWS config loaded with assumed role, region: %s", region)
 	client, _ := newPIClientWithSTSClient(cfg, roleARN, stsClient)
+	log.Printf("[PI] AWS config loaded, STS credential provider attached for role assumption, region: %s", region)
 	return client, nil
 }
 

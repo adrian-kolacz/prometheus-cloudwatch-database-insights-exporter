@@ -31,6 +31,9 @@ const (
 	ValidPrometheusName  = `^[a-zA-Z_:][a-zA-Z0-9_:]*$`
 )
 
+// validRoleARNPattern covers standard, China (aws-cn), and GovCloud (aws-us-gov) partitions.
+var validRoleARNPattern = regexp.MustCompile(`^arn:aws[a-z0-9\-]*:iam::\d{12}:role/.+$`)
+
 func LoadConfig(filePath string) (*models.ParsedConfig, error) {
 	data, err := ioutil.ReadFile(filePath)
 	if err != nil {
@@ -145,7 +148,13 @@ func parsedValidateConfig(config *models.Config) (*models.ParsedConfig, error) {
 	parsedConfig.Discovery.Metrics = metricsConfig
 
 	parsedConfig.Discovery.Processing = parseProcessingConfig(config.Discovery.Processing)
-	parsedConfig.Discovery.RoleARN = config.Discovery.RoleARN
+
+	if roleARN := config.Discovery.RoleARN; roleARN != "" {
+		if !validRoleARNPattern.MatchString(roleARN) {
+			return nil, fmt.Errorf("invalid discovery.role_arn %q: expected format arn:aws*:iam::<12-digit-account>:role/<name>", roleARN)
+		}
+		parsedConfig.Discovery.RoleARN = roleARN
+	}
 
 	exportConfig, err := parseExportConfig(config.Export)
 	if err != nil {

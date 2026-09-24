@@ -40,8 +40,8 @@ func NewRDSClientWithRole(region, roleARN string) (*RDSClient, error) {
 	}
 
 	stsClient := sts.NewFromConfig(cfg)
-	log.Printf("[RDS] AWS config loaded with assumed role, region: %s", region)
 	client, _ := newRDSClientWithSTSClient(cfg, roleARN, stsClient)
+	log.Printf("[RDS] AWS config loaded, STS credential provider attached for role assumption, region: %s", region)
 	return client, nil
 }
 
