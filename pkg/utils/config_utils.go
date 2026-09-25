@@ -35,6 +35,10 @@ const (
 // validRoleARNPattern covers standard, China (aws-cn), and GovCloud (aws-us-gov) partitions.
 var validRoleARNPattern = regexp.MustCompile(`^arn:aws[a-z0-9\-]*:iam::\d{12}:role/.+$`)
 
+// validExternalIDPattern matches the character class of the AWS STS ExternalId constraint: [\w+=,.@:/-].
+// Length (2-1224) is checked separately because Go's RE2 engine caps repeat counts at 1000.
+var validExternalIDPattern = regexp.MustCompile(`^[\w+=,.@:\\/\-]+$`)
+
 func LoadConfig(filePath string) (*models.ParsedConfig, error) {
 	data, err := ioutil.ReadFile(filePath)
 	if err != nil {
@@ -155,7 +159,15 @@ func parsedValidateConfig(config *models.Config) (*models.ParsedConfig, error) {
 			return nil, fmt.Errorf("invalid discovery.role_arn %q: expected format arn:aws*:iam::<12-digit-account>:role/<name>", roleARN)
 		}
 		parsedConfig.Discovery.RoleARN = roleARN
-		parsedConfig.Discovery.RoleARNExternalID = config.Discovery.RoleARNExternalID
+		if extID := config.Discovery.RoleARNExternalID; extID != "" {
+			if l := len(extID); l < 2 || l > 1224 {
+				return nil, fmt.Errorf("invalid discovery.role_arn_external_id: length must be 2-1224 (got %d)", l)
+			}
+			if !validExternalIDPattern.MatchString(extID) {
+				return nil, fmt.Errorf("invalid discovery.role_arn_external_id: must contain only [a-zA-Z0-9_+=,.@:/-]")
+			}
+			parsedConfig.Discovery.RoleARNExternalID = extID
+		}
 	} else if config.Discovery.RoleARNExternalID != "" {
 		return nil, fmt.Errorf("discovery.role_arn_external_id requires discovery.role_arn to be set")
 	}

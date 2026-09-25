@@ -133,6 +133,9 @@ func TestNewPIClientWithRoleEndToEnd(t *testing.T) {
 				mu.Unlock()
 				w.Header().Set("Content-Type", "text/xml")
 				fmt.Fprint(w, stsXML)
+			} else {
+				w.WriteHeader(http.StatusInternalServerError)
+				fmt.Fprintf(w, "unexpected request: method=%s path=%s body=%s", r.Method, r.URL.Path, string(body))
 			}
 		}
 	}))
