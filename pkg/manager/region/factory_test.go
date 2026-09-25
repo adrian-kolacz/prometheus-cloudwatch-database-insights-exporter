@@ -150,6 +150,45 @@ func TestCreateSingleRegionManager(t *testing.T) {
 			config:      testutils.CreateParsedTestConfig(1),
 			shouldError: false,
 		},
+		{
+			name:   "creates single region manager with role ARN (STS call is lazy)",
+			region: "us-west-2",
+			config: &models.ParsedConfig{
+				Discovery: models.ParsedDiscoveryConfig{
+					RoleARN: "arn:aws:iam::123456789012:role/TestRole",
+					Instances: models.ParsedInstancesConfig{
+						MaxInstances: testutils.TestMaxInstances,
+					},
+					Metrics: models.ParsedMetricsConfig{
+						Statistic: models.StatisticAvg,
+					},
+				},
+				Export: models.ParsedExportConfig{
+					Port: 8081,
+				},
+			},
+			shouldError: false,
+		},
+		{
+			name:   "creates single region manager with role ARN and ExternalID",
+			region: "us-west-2",
+			config: &models.ParsedConfig{
+				Discovery: models.ParsedDiscoveryConfig{
+					RoleARN:           "arn:aws:iam::123456789012:role/TestRole",
+					RoleARNExternalID: "my-external-id",
+					Instances: models.ParsedInstancesConfig{
+						MaxInstances: testutils.TestMaxInstances,
+					},
+					Metrics: models.ParsedMetricsConfig{
+						Statistic: models.StatisticAvg,
+					},
+				},
+				Export: models.ParsedExportConfig{
+					Port: 8081,
+				},
+			},
+			shouldError: false,
+		},
 	}
 
 	for _, tc := range testCases {
