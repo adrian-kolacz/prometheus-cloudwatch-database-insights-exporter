@@ -160,6 +160,14 @@ func parsedValidateConfig(config *models.Config) (*models.ParsedConfig, error) {
 		if !validRoleARNPattern.MatchString(roleARN) {
 			return nil, fmt.Errorf("invalid discovery.role_arn %q: expected format arn:aws*:iam::<12-digit-account>:role/<name>", roleARN)
 		}
+		rolePathAndName := roleARN[strings.LastIndex(roleARN, "role/")+5:]
+		roleName := rolePathAndName
+		if i := strings.LastIndex(rolePathAndName, "/"); i >= 0 {
+			roleName = rolePathAndName[i+1:]
+		}
+		if utf8.RuneCountInString(roleName) > 64 {
+			return nil, fmt.Errorf("invalid discovery.role_arn: role name %q exceeds the AWS 64-character limit", roleName)
+		}
 		parsedConfig.Discovery.RoleARN = roleARN
 		if extID := config.Discovery.RoleARNExternalID; extID != "" {
 			if l := utf8.RuneCountInString(extID); l < 2 || l > 1224 {

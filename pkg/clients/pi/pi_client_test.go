@@ -13,11 +13,22 @@ import (
 	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/config"
 	"github.com/aws/aws-sdk-go-v2/credentials"
+	"github.com/aws/aws-sdk-go-v2/credentials/stscreds"
+
+	"github.com/awslabs/prometheus-cloudwatch-database-insights-exporter/pkg/utils"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
 	"github.com/awslabs/prometheus-cloudwatch-database-insights-exporter/pkg/testutils"
 )
+
+// newPIClientWithSTSClient is a test-only helper that injects a mock STS client
+// so unit tests can verify the AssumeRole credential chain without network calls.
+func newPIClientWithSTSClient(cfg aws.Config, roleARN, externalID string, stsClient stscreds.AssumeRoleAPIClient) (*PIClient, *aws.CredentialsCache) {
+	credCache := utils.NewAssumeRoleCredCache(stsClient, roleARN, externalID, "rds-pi-exporter-pi")
+	cfg.Credentials = credCache
+	return newPIClientFromConfig(cfg, ""), credCache
+}
 
 func TestNewPIClient(t *testing.T) {
 	t.Run("creates new PI client successfully", func(t *testing.T) {
