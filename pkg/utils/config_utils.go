@@ -36,7 +36,7 @@ var validRoleARNPattern = regexp.MustCompile(`^arn:aws[a-z0-9\-]*:iam::\d{12}:ro
 
 // validExternalIDPattern matches the character class of the AWS STS ExternalId constraint: [\w+=,.@:/-].
 // Length (2-1224) is checked separately because Go's RE2 engine caps repeat counts at 1000.
-var validExternalIDPattern = regexp.MustCompile(`^[\w+=,.@:\\/\-]+$`)
+var validExternalIDPattern = regexp.MustCompile(`^[\w+=,.@:/\-]+$`)
 
 func LoadConfig(filePath string) (*models.ParsedConfig, error) {
 	data, err := ioutil.ReadFile(filePath)
