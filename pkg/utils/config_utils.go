@@ -32,9 +32,9 @@ const (
 	ValidPrometheusName  = `^[a-zA-Z_:][a-zA-Z0-9_:]*$`
 )
 
-// validRoleARNPattern covers standard, China (aws-cn), and GovCloud (aws-us-gov) partitions.
-// The role name/path segment uses IAM-allowed characters [\w+=,.@/-] with a 1-512 char limit.
-var validRoleARNPattern = regexp.MustCompile(`^arn:aws[a-z0-9\-]*:iam::\d{12}:role/[\w+=,.@/\-]{1,512}$`)
+// validRoleARNPattern accepts exactly the three real AWS partitions: standard, China (aws-cn),
+// and GovCloud (aws-us-gov). The role name/path segment uses IAM-allowed characters [\w+=,.@/-].
+var validRoleARNPattern = regexp.MustCompile(`^arn:(aws|aws-cn|aws-us-gov):iam::\d{12}:role/[\w+=,.@/\-]{1,512}$`)
 
 // validExternalIDPattern matches the character class of the AWS STS ExternalId constraint: [\w+=,.@:/-].
 // Length (2-1224) is checked separately because Go's RE2 engine caps repeat counts at 1000.
