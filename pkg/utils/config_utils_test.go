@@ -356,6 +356,35 @@ export:
 				assert.Equal(t, "my-external-id", cfg.Discovery.RoleARNExternalID)
 			},
 		},
+		{
+			name: "invalid role_arn_external_id returns error at parse time",
+			configContent: `discovery:
+  regions:
+  - us-east-1
+  role_arn: "arn:aws:iam::123456789012:role/CrossAccountRole"
+  role_arn_external_id: "x"
+  metrics:
+    statistic: "avg"
+export:
+  port: 8081`,
+			expectedError: true,
+		},
+		{
+			name: "role_arn_external_id with special chars is accepted",
+			configContent: `discovery:
+  regions:
+  - us-east-1
+  role_arn: "arn:aws:iam::123456789012:role/CrossAccountRole"
+  role_arn_external_id: "prod:account/team@corp.com"
+  metrics:
+    statistic: "avg"
+export:
+  port: 8081`,
+			expectedError: false,
+			validate: func(t *testing.T, cfg *models.ParsedConfig) {
+				assert.Equal(t, "prod:account/team@corp.com", cfg.Discovery.RoleARNExternalID)
+			},
+		},
 	}
 
 	for _, tc := range testCases {
