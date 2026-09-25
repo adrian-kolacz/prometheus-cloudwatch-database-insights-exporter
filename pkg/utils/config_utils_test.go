@@ -286,6 +286,18 @@ export:
 			expectedError: true,
 		},
 		{
+			name: "role_arn with invalid role name characters returns error at parse time",
+			configContent: `discovery:
+  regions:
+  - us-east-1
+  role_arn: "arn:aws:iam::123456789012:role/bad name!"
+  metrics:
+    statistic: "avg"
+export:
+  port: 8081`,
+			expectedError: true,
+		},
+		{
 			name: "role_arn missing account ID returns error at parse time",
 			configContent: `discovery:
   regions:
