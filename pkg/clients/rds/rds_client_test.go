@@ -82,6 +82,7 @@ func TestNewRDSClientWithSTSClient(t *testing.T) {
 		assert.True(t, mockSTS.Called(), "STS AssumeRole should have been called on credential retrieval")
 		assert.Equal(t, "ASIAIOSFODNN7EXAMPLE", creds.AccessKeyID)
 		assert.Equal(t, "session-token", creds.SessionToken)
+		assert.Equal(t, "arn:aws:iam::123456789012:role/TestRole", mockSTS.CapturedRoleArnValue())
 		assert.Equal(t, "rds-pi-exporter-rds", mockSTS.CapturedRoleSessionNameValue())
 	})
 
