@@ -6,7 +6,6 @@ import (
 
 	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/config"
-	"github.com/aws/aws-sdk-go-v2/credentials/stscreds"
 	"github.com/aws/aws-sdk-go-v2/service/rds"
 	"github.com/aws/aws-sdk-go-v2/service/rds/types"
 	"github.com/aws/aws-sdk-go-v2/service/sts"
@@ -48,11 +47,6 @@ func NewRDSClientWithRole(region, roleARN, externalID string) (*RDSClient, error
 	return newRDSClientFromConfig(cfg, ""), nil
 }
 
-func newRDSClientWithSTSClient(cfg aws.Config, roleARN, externalID string, stsClient stscreds.AssumeRoleAPIClient) (*RDSClient, *aws.CredentialsCache) {
-	credCache := utils.NewAssumeRoleCredCache(stsClient, roleARN, externalID, "rds-pi-exporter-rds")
-	cfg.Credentials = credCache
-	return newRDSClientFromConfig(cfg, ""), credCache
-}
 
 func NewRDSClientWithEndpoint(region, endpoint string) (*RDSClient, error) {
 	log.Println("[RDS] Creating new RDS client...")

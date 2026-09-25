@@ -8,7 +8,6 @@ import (
 
 	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/config"
-	"github.com/aws/aws-sdk-go-v2/credentials/stscreds"
 	"github.com/aws/aws-sdk-go-v2/service/pi"
 	"github.com/aws/aws-sdk-go-v2/service/pi/types"
 	"github.com/aws/aws-sdk-go-v2/service/sts"
@@ -52,11 +51,6 @@ func NewPIClientWithRole(region, roleARN, externalID string) (*PIClient, error) 
 	return newPIClientFromConfig(cfg, ""), nil
 }
 
-func newPIClientWithSTSClient(cfg aws.Config, roleARN, externalID string, stsClient stscreds.AssumeRoleAPIClient) (*PIClient, *aws.CredentialsCache) {
-	credCache := utils.NewAssumeRoleCredCache(stsClient, roleARN, externalID, "rds-pi-exporter-pi")
-	cfg.Credentials = credCache
-	return newPIClientFromConfig(cfg, ""), credCache
-}
 
 func NewPIClientWithEndpoint(region, endpoint string) (*PIClient, error) {
 	log.Println("[PI] Creating new PI client...")

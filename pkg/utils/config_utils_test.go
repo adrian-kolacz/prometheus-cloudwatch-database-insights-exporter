@@ -288,6 +288,45 @@ export:
 			expectedError: true,
 		},
 		{
+			name: "role_arn with role name at 64 chars is accepted",
+			configContent: fmt.Sprintf(`discovery:
+  regions:
+  - us-east-1
+  role_arn: "arn:aws:iam::123456789012:role/%s"
+  metrics:
+    statistic: "avg"
+export:
+  port: 8081`, strings.Repeat("a", 64)),
+			expectedError: false,
+			validate: func(t *testing.T, cfg *models.ParsedConfig) {
+				assert.Contains(t, cfg.Discovery.RoleARN, strings.Repeat("a", 64))
+			},
+		},
+		{
+			name: "role_arn with role name over 64 chars returns error at parse time",
+			configContent: fmt.Sprintf(`discovery:
+  regions:
+  - us-east-1
+  role_arn: "arn:aws:iam::123456789012:role/%s"
+  metrics:
+    statistic: "avg"
+export:
+  port: 8081`, strings.Repeat("a", 65)),
+			expectedError: true,
+		},
+		{
+			name: "role_arn with path where name is exactly 64 chars is accepted",
+			configContent: fmt.Sprintf(`discovery:
+  regions:
+  - us-east-1
+  role_arn: "arn:aws:iam::123456789012:role/mypath/%s"
+  metrics:
+    statistic: "avg"
+export:
+  port: 8081`, strings.Repeat("a", 64)),
+			expectedError: false,
+		},
+		{
 			name: "role_arn with invalid role name characters returns error at parse time",
 			configContent: `discovery:
   regions:

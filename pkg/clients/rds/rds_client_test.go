@@ -13,11 +13,22 @@ import (
 	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/config"
 	"github.com/aws/aws-sdk-go-v2/credentials"
+	"github.com/aws/aws-sdk-go-v2/credentials/stscreds"
+
+	"github.com/awslabs/prometheus-cloudwatch-database-insights-exporter/pkg/utils"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
 	"github.com/awslabs/prometheus-cloudwatch-database-insights-exporter/pkg/testutils"
 )
+
+// newRDSClientWithSTSClient is a test-only helper that injects a mock STS client
+// so unit tests can verify the AssumeRole credential chain without network calls.
+func newRDSClientWithSTSClient(cfg aws.Config, roleARN, externalID string, stsClient stscreds.AssumeRoleAPIClient) (*RDSClient, *aws.CredentialsCache) {
+	credCache := utils.NewAssumeRoleCredCache(stsClient, roleARN, externalID, "rds-pi-exporter-rds")
+	cfg.Credentials = credCache
+	return newRDSClientFromConfig(cfg, ""), credCache
+}
 
 func TestNewRDSClient(t *testing.T) {
 	t.Run("creates new RDS client successfully", func(t *testing.T) {
