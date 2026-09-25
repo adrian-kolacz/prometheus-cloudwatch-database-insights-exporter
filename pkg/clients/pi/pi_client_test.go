@@ -158,3 +158,48 @@ func TestNewPIClientWithRoleEndToEnd(t *testing.T) {
 	assert.Equal(t, 1, stsCallCount, "STS AssumeRole should have been called exactly once")
 	assert.Contains(t, piAuthHeader, "ASIAIOSFODNN7EXAMPLE", "PI request should use assumed role credentials, not base credentials")
 }
+
+func TestNewPIClientWithRoleAndExternalIDEndToEnd(t *testing.T) {
+	var (
+		mu             sync.Mutex
+		stsRequestBody string
+	)
+
+	const stsXML = `<AssumeRoleResponse xmlns="https://sts.amazonaws.com/doc/2011-06-15/"><AssumeRoleResult><Credentials><AccessKeyId>ASIAIOSFODNN7EXAMPLE</AccessKeyId><SecretAccessKey>wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY</SecretAccessKey><SessionToken>assumed-session-token</SessionToken><Expiration>2030-01-01T00:00:00Z</Expiration></Credentials><AssumedRoleUser><Arn>arn:aws:sts::123456789012:assumed-role/TestRole/rds-pi-exporter-pi</Arn><AssumedRoleId>AROATEST:rds-pi-exporter-pi</AssumedRoleId></AssumedRoleUser></AssumeRoleResult><ResponseMetadata><RequestId>test</RequestId></ResponseMetadata></AssumeRoleResponse>`
+	const piJSON = `{"Metrics":[]}`
+
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if strings.HasPrefix(r.Header.Get("Content-Type"), "application/x-amz-json") {
+			w.Header().Set("Content-Type", "application/x-amz-json-1.1")
+			fmt.Fprint(w, piJSON)
+		} else {
+			body, _ := io.ReadAll(r.Body)
+			if strings.Contains(string(body), "AssumeRole") {
+				mu.Lock()
+				stsRequestBody = string(body)
+				mu.Unlock()
+				w.Header().Set("Content-Type", "text/xml")
+				fmt.Fprint(w, stsXML)
+			} else {
+				w.WriteHeader(http.StatusInternalServerError)
+				fmt.Fprintf(w, "unexpected request: method=%s path=%s body=%s", r.Method, r.URL.Path, string(body))
+			}
+		}
+	}))
+	defer server.Close()
+
+	t.Setenv("AWS_ENDPOINT_URL", server.URL)
+	t.Setenv("AWS_ACCESS_KEY_ID", "AKIDBASE")
+	t.Setenv("AWS_SECRET_ACCESS_KEY", "SECRETBASE")
+	t.Setenv("AWS_SESSION_TOKEN", "")
+
+	piClient, err := NewPIClientWithRole(testutils.TestRegion, "arn:aws:iam::123456789012:role/TestRole", "my-external-id")
+	require.NoError(t, err)
+
+	_, err = piClient.ListAvailableResourceMetrics(context.Background(), "db-TESTRESOURCEID")
+	require.NoError(t, err)
+
+	mu.Lock()
+	defer mu.Unlock()
+	assert.Contains(t, stsRequestBody, "ExternalId=my-external-id", "STS AssumeRole request should include ExternalId on the wire")
+}

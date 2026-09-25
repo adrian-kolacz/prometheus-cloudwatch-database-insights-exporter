@@ -10,6 +10,7 @@ import (
 	"regexp"
 	"strings"
 	"time"
+	"unicode/utf8"
 
 	"github.com/awslabs/prometheus-cloudwatch-database-insights-exporter/pkg/filter"
 	"github.com/awslabs/prometheus-cloudwatch-database-insights-exporter/pkg/models"
@@ -161,8 +162,8 @@ func parsedValidateConfig(config *models.Config) (*models.ParsedConfig, error) {
 		}
 		parsedConfig.Discovery.RoleARN = roleARN
 		if extID := config.Discovery.RoleARNExternalID; extID != "" {
-			if l := len(extID); l < 2 || l > 1224 {
-				return nil, fmt.Errorf("invalid discovery.role_arn_external_id: length must be 2-1224 (got %d)", l)
+			if l := utf8.RuneCountInString(extID); l < 2 || l > 1224 {
+				return nil, fmt.Errorf("invalid discovery.role_arn_external_id: length must be 2-1224 characters (got %d)", l)
 			}
 			if !validExternalIDPattern.MatchString(extID) {
 				return nil, fmt.Errorf("invalid discovery.role_arn_external_id: must contain only [a-zA-Z0-9_+=,.@:/-]")
