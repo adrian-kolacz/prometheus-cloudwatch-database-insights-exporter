@@ -16,10 +16,11 @@ import (
 var _ stscreds.AssumeRoleAPIClient = (*MockSTSClient)(nil)
 
 type MockSTSClient struct {
-	mu                 sync.Mutex
-	wasCalled          bool
-	CapturedExternalID string // set to the ExternalId value from the AssumeRole call, if any
-	ReturnErr          error
+	mu                     sync.Mutex
+	wasCalled              bool
+	capturedExternalID     string
+	capturedRoleSessionName string
+	ReturnErr              error
 }
 
 func (m *MockSTSClient) AssumeRole(_ context.Context, params *sts.AssumeRoleInput, _ ...func(*sts.Options)) (*sts.AssumeRoleOutput, error) {
@@ -27,7 +28,10 @@ func (m *MockSTSClient) AssumeRole(_ context.Context, params *sts.AssumeRoleInpu
 	defer m.mu.Unlock()
 	m.wasCalled = true
 	if params.ExternalId != nil {
-		m.CapturedExternalID = *params.ExternalId
+		m.capturedExternalID = *params.ExternalId
+	}
+	if params.RoleSessionName != nil {
+		m.capturedRoleSessionName = *params.RoleSessionName
 	}
 	if m.ReturnErr != nil {
 		return nil, m.ReturnErr
@@ -46,4 +50,16 @@ func (m *MockSTSClient) Called() bool {
 	m.mu.Lock()
 	defer m.mu.Unlock()
 	return m.wasCalled
+}
+
+func (m *MockSTSClient) CapturedExternalIDValue() string {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	return m.capturedExternalID
+}
+
+func (m *MockSTSClient) CapturedRoleSessionNameValue() string {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	return m.capturedRoleSessionName
 }

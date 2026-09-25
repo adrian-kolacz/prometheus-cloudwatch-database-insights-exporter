@@ -82,6 +82,7 @@ func TestNewRDSClientWithSTSClient(t *testing.T) {
 		assert.True(t, mockSTS.Called(), "STS AssumeRole should have been called on credential retrieval")
 		assert.Equal(t, "ASIAIOSFODNN7EXAMPLE", creds.AccessKeyID)
 		assert.Equal(t, "session-token", creds.SessionToken)
+		assert.Equal(t, "rds-pi-exporter-rds", mockSTS.CapturedRoleSessionNameValue())
 	})
 
 	t.Run("ExternalID is forwarded to AssumeRole when set", func(t *testing.T) {
@@ -91,7 +92,7 @@ func TestNewRDSClientWithSTSClient(t *testing.T) {
 
 		_, err := credCache.Retrieve(context.TODO())
 		require.NoError(t, err)
-		assert.Equal(t, "my-external-id", mockSTS.CapturedExternalID)
+		assert.Equal(t, "my-external-id", mockSTS.CapturedExternalIDValue())
 	})
 
 	t.Run("ExternalID is not sent when empty", func(t *testing.T) {
@@ -101,7 +102,7 @@ func TestNewRDSClientWithSTSClient(t *testing.T) {
 
 		_, err := credCache.Retrieve(context.TODO())
 		require.NoError(t, err)
-		assert.Empty(t, mockSTS.CapturedExternalID)
+		assert.Empty(t, mockSTS.CapturedExternalIDValue())
 	})
 
 	t.Run("AssumeRole error is propagated through credential retrieval", func(t *testing.T) {
