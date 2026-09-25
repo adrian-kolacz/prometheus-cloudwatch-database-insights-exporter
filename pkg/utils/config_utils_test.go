@@ -3,6 +3,7 @@ package utils
 import (
 	"fmt"
 	"os"
+	"strings"
 	"testing"
 	"time"
 
@@ -436,6 +437,43 @@ export:
 			}
 		})
 	}
+}
+
+func TestLoadConfigExternalIDLengthBoundary(t *testing.T) {
+	makeConfig := func(extID string) string {
+		return fmt.Sprintf(`discovery:
+  regions:
+  - us-east-1
+  role_arn: "arn:aws:iam::123456789012:role/CrossAccountRole"
+  role_arn_external_id: "%s"
+  metrics:
+    statistic: "avg"
+export:
+  port: 8081`, extID)
+	}
+
+	writeAndLoad := func(t *testing.T, content string) (*models.ParsedConfig, error) {
+		t.Helper()
+		tmpFile, err := os.CreateTemp("", "config-*.yml")
+		if err != nil {
+			return nil, err
+		}
+		defer os.Remove(tmpFile.Name())
+		_, _ = tmpFile.WriteString(content)
+		tmpFile.Close()
+		return LoadConfig(tmpFile.Name())
+	}
+
+	t.Run("ExternalID at max length (1224 chars) is accepted", func(t *testing.T) {
+		cfg, err := writeAndLoad(t, makeConfig(strings.Repeat("a", 1224)))
+		assert.NoError(t, err)
+		assert.Equal(t, strings.Repeat("a", 1224), cfg.Discovery.RoleARNExternalID)
+	})
+
+	t.Run("ExternalID over max length (1225 chars) returns error", func(t *testing.T) {
+		_, err := writeAndLoad(t, makeConfig(strings.Repeat("a", 1225)))
+		assert.Error(t, err)
+	})
 }
 
 func TestCreateDefaultConfig(t *testing.T) {

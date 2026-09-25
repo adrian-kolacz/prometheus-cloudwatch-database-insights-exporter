@@ -163,6 +163,45 @@ func TestNewRDSClientWithRoleEndToEnd(t *testing.T) {
 	assert.Contains(t, rdsAuthHeader, "ASIAIOSFODNN7EXAMPLE", "RDS request should use assumed role credentials, not base credentials")
 }
 
+func TestNewRDSClientWithRoleAndExternalIDEndToEnd(t *testing.T) {
+	var (
+		mu             sync.Mutex
+		stsRequestBody string
+	)
+
+	const stsXML = `<AssumeRoleResponse xmlns="https://sts.amazonaws.com/doc/2011-06-15/"><AssumeRoleResult><Credentials><AccessKeyId>ASIAIOSFODNN7EXAMPLE</AccessKeyId><SecretAccessKey>wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY</SecretAccessKey><SessionToken>assumed-session-token</SessionToken><Expiration>2030-01-01T00:00:00Z</Expiration></Credentials><AssumedRoleUser><Arn>arn:aws:sts::123456789012:assumed-role/TestRole/rds-pi-exporter-rds</Arn><AssumedRoleId>AROATEST:rds-pi-exporter-rds</AssumedRoleId></AssumedRoleUser></AssumeRoleResult><ResponseMetadata><RequestId>test</RequestId></ResponseMetadata></AssumeRoleResponse>`
+	const rdsXML = `<DescribeDBInstancesResponse xmlns="http://rds.amazonaws.com/doc/2014-10-31/"><DescribeDBInstancesResult><DBInstances/></DescribeDBInstancesResult><ResponseMetadata><RequestId>test</RequestId></ResponseMetadata></DescribeDBInstancesResponse>`
+
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		body, _ := io.ReadAll(r.Body)
+		w.Header().Set("Content-Type", "text/xml")
+		if strings.Contains(string(body), "AssumeRole") {
+			mu.Lock()
+			stsRequestBody = string(body)
+			mu.Unlock()
+			fmt.Fprint(w, stsXML)
+		} else {
+			fmt.Fprint(w, rdsXML)
+		}
+	}))
+	defer server.Close()
+
+	t.Setenv("AWS_ENDPOINT_URL", server.URL)
+	t.Setenv("AWS_ACCESS_KEY_ID", "AKIDBASE")
+	t.Setenv("AWS_SECRET_ACCESS_KEY", "SECRETBASE")
+	t.Setenv("AWS_SESSION_TOKEN", "")
+
+	rdsClient, err := NewRDSClientWithRole(testutils.TestRegion, "arn:aws:iam::123456789012:role/TestRole", "my-external-id")
+	require.NoError(t, err)
+
+	_, err = rdsClient.DescribeDBInstancesPaginator(context.Background())
+	require.NoError(t, err)
+
+	mu.Lock()
+	defer mu.Unlock()
+	assert.Contains(t, stsRequestBody, "ExternalId=my-external-id", "STS AssumeRole request should include ExternalId on the wire")
+}
+
 func TestDescribeDBInstancesPaginatorIntegration(t *testing.T) {
 	testCases := []struct {
 		name            string
