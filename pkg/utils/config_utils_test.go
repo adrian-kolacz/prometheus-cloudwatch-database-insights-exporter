@@ -11,6 +11,7 @@ import (
 	"github.com/awslabs/prometheus-cloudwatch-database-insights-exporter/pkg/models"
 	"github.com/awslabs/prometheus-cloudwatch-database-insights-exporter/pkg/testutils"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestLoadConfig(t *testing.T) {
@@ -416,11 +417,11 @@ export:
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
 			tmpFile, err := os.CreateTemp("", "config-*.yml")
-			assert.NoError(t, err)
+			require.NoError(t, err)
 			defer os.Remove(tmpFile.Name())
 
 			_, err = tmpFile.WriteString(tc.configContent)
-			assert.NoError(t, err)
+			require.NoError(t, err)
 			tmpFile.Close()
 
 			config, err := LoadConfig(tmpFile.Name())
@@ -463,6 +464,12 @@ export:
 		tmpFile.Close()
 		return LoadConfig(tmpFile.Name())
 	}
+
+	t.Run("ExternalID at min length (2 chars) is accepted", func(t *testing.T) {
+		cfg, err := writeAndLoad(t, makeConfig("ab"))
+		assert.NoError(t, err)
+		assert.Equal(t, "ab", cfg.Discovery.RoleARNExternalID)
+	})
 
 	t.Run("ExternalID at max length (1224 chars) is accepted", func(t *testing.T) {
 		cfg, err := writeAndLoad(t, makeConfig(strings.Repeat("a", 1224)))

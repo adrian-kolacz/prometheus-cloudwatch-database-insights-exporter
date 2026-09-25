@@ -43,9 +43,9 @@ func NewRDSClientWithRole(region, roleARN, externalID string) (*RDSClient, error
 	}
 
 	stsClient := sts.NewFromConfig(cfg)
-	client, _ := newRDSClientWithSTSClient(cfg, roleARN, externalID, stsClient) // credCache only needed in tests
+	cfg.Credentials = utils.NewAssumeRoleCredCache(stsClient, roleARN, externalID, "rds-pi-exporter-rds")
 	log.Printf("[RDS] STS credential provider attached for role assumption, region: %s", region)
-	return client, nil
+	return newRDSClientFromConfig(cfg, ""), nil
 }
 
 func newRDSClientWithSTSClient(cfg aws.Config, roleARN, externalID string, stsClient stscreds.AssumeRoleAPIClient) (*RDSClient, *aws.CredentialsCache) {

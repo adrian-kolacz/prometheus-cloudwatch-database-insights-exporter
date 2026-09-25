@@ -201,5 +201,7 @@ func TestNewPIClientWithRoleAndExternalIDEndToEnd(t *testing.T) {
 
 	mu.Lock()
 	defer mu.Unlock()
+	// STS uses application/x-www-form-urlencoded; special chars would be percent-encoded.
+	// "my-external-id" contains only URL-safe chars so no encoding is needed here.
 	assert.Contains(t, stsRequestBody, "ExternalId=my-external-id", "STS AssumeRole request should include ExternalId on the wire")
 }
