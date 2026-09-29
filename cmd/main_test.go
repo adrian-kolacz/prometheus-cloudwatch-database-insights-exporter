@@ -11,6 +11,17 @@ import (
 	"github.com/awslabs/prometheus-cloudwatch-database-insights-exporter/pkg/testutils/mocks"
 )
 
+func TestHealthHandler(t *testing.T) {
+	req := httptest.NewRequest(http.MethodGet, "/health", nil)
+	recorder := httptest.NewRecorder()
+
+	healthHandler(recorder, req)
+
+	assert.Equal(t, http.StatusOK, recorder.Code)
+	assert.Equal(t, "application/json", recorder.Header().Get("Content-Type"))
+	assert.Contains(t, recorder.Body.String(), `"status":"ok"`)
+}
+
 func TestMetricsHandler(t *testing.T) {
 	testCases := []struct {
 		name               string
