@@ -750,6 +750,30 @@ func TestParseInstancesConfig(t *testing.T) {
 			},
 		},
 		{
+			name:          "zero maxInstances defaults to MaxInstances",
+			config:        models.InstancesConfig{MaxInstances: 0},
+			expectedError: false,
+			validate: func(t *testing.T, cfg models.ParsedInstancesConfig) {
+				assert.Equal(t, MaxInstances, cfg.MaxInstances)
+			},
+		},
+		{
+			name:          "negative maxInstances defaults to MaxInstances",
+			config:        models.InstancesConfig{MaxInstances: -5},
+			expectedError: false,
+			validate: func(t *testing.T, cfg models.ParsedInstancesConfig) {
+				assert.Equal(t, MaxInstances, cfg.MaxInstances)
+			},
+		},
+		{
+			name:          "maxInstances above hard limit is capped at MaxInstancesHardLimit",
+			config:        models.InstancesConfig{MaxInstances: MaxInstancesHardLimit + 1},
+			expectedError: false,
+			validate: func(t *testing.T, cfg models.ParsedInstancesConfig) {
+				assert.Equal(t, MaxInstancesHardLimit, cfg.MaxInstances)
+			},
+		},
+		{
 			name: "invalid include field name",
 			config: models.InstancesConfig{
 				MaxInstances: 10,

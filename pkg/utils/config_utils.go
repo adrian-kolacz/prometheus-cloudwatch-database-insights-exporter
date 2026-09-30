@@ -22,14 +22,14 @@ const (
 	MaxInstancesHardLimit = 10_000
 	BatchSize             = 15
 	MaximumConcurrency    = 60
-	DefaultConcurrency   = 4
-	MinTTL               = time.Minute
-	MaxTTL               = time.Hour * 24
-	DefaultInstanceTTL   = time.Minute * 5
-	DefaultMetadataTTL   = time.Minute * 60
-	DefaultCacheMaxSize  = 100000
-	MinCacheMaxSize      = 1
-	ValidPrometheusName  = `^[a-zA-Z_:][a-zA-Z0-9_:]*$`
+	DefaultConcurrency    = 4
+	MinTTL                = time.Minute
+	MaxTTL                = time.Hour * 24
+	DefaultInstanceTTL    = time.Minute * 5
+	DefaultMetadataTTL    = time.Minute * 60
+	DefaultCacheMaxSize   = 100000
+	MinCacheMaxSize       = 1
+	ValidPrometheusName   = `^[a-zA-Z_:][a-zA-Z0-9_:]*$`
 )
 
 func LoadConfig(filePath string) (*models.ParsedConfig, error) {
@@ -204,7 +204,14 @@ func compileFilterConfig(config models.FilterConfig) (filter.Patterns, error) {
 }
 
 func parseInstancesConfig(config models.InstancesConfig) (models.ParsedInstancesConfig, error) {
-	maxInstances := GetOrDefault(config.MaxInstances, 1, MaxInstancesHardLimit, MaxInstancesHardLimit, "max-instances")
+	maxInstances := config.MaxInstances
+	if maxInstances <= 0 {
+		log.Printf("[CONFIG] max-instances %d is outside the allowed range [1, %d], setting to %d", maxInstances, MaxInstancesHardLimit, MaxInstances)
+		maxInstances = MaxInstances
+	} else if maxInstances > MaxInstancesHardLimit {
+		log.Printf("[CONFIG] max-instances %d is outside the allowed range [1, %d], setting to %d", maxInstances, MaxInstancesHardLimit, MaxInstancesHardLimit)
+		maxInstances = MaxInstancesHardLimit
+	}
 
 	// Parse instance discovery cache TTL
 	cacheTTL := DefaultInstanceTTL

@@ -459,7 +459,7 @@ func TestProperty_MaxInstancesAboveDefault(t *testing.T) {
 
 			return config.Discovery.Instances.MaxInstances == maxInstances
 		},
-		gen.IntRange(MaxInstances+1, 1000),
+		gen.IntRange(MaxInstances+1, MaxInstancesHardLimit),
 	))
 
 	properties.TestingRun(t)
