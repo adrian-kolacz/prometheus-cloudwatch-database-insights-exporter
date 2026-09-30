@@ -81,7 +81,7 @@ func TestNewPIClientWithSTSClient(t *testing.T) {
 		require.NoError(t, err)
 
 		assert.True(t, mockSTS.Called(), "STS AssumeRole should have been called on credential retrieval")
-		assert.Equal(t, "ASIAIOSFODNN7EXAMPLE", creds.AccessKeyID)
+		assert.Equal(t, "TEST-ACCESS-KEY-ID-0", creds.AccessKeyID)
 		assert.Equal(t, "session-token", creds.SessionToken)
 		assert.Equal(t, "arn:aws:iam::123456789012:role/TestRole", mockSTS.CapturedRoleArnValue())
 		assert.Equal(t, "rds-pi-exporter-pi", mockSTS.CapturedRoleSessionNameValue())
@@ -126,7 +126,7 @@ func TestNewPIClientWithRoleEndToEnd(t *testing.T) {
 		piAuthHeader string
 	)
 
-	const stsXML = `<AssumeRoleResponse xmlns="https://sts.amazonaws.com/doc/2011-06-15/"><AssumeRoleResult><Credentials><AccessKeyId>ASIAIOSFODNN7EXAMPLE</AccessKeyId><SecretAccessKey>wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY</SecretAccessKey><SessionToken>assumed-session-token</SessionToken><Expiration>2030-01-01T00:00:00Z</Expiration></Credentials><AssumedRoleUser><Arn>arn:aws:sts::123456789012:assumed-role/TestRole/rds-pi-exporter/pi</Arn><AssumedRoleId>AROATEST:rds-pi-exporter/pi</AssumedRoleId></AssumedRoleUser></AssumeRoleResult><ResponseMetadata><RequestId>test</RequestId></ResponseMetadata></AssumeRoleResponse>`
+	const stsXML = `<AssumeRoleResponse xmlns="https://sts.amazonaws.com/doc/2011-06-15/"><AssumeRoleResult><Credentials><AccessKeyId>TEST-ACCESS-KEY-ID-0</AccessKeyId><SecretAccessKey>TEST-SECRET-KEY-NOT-REAL-000000000000</SecretAccessKey><SessionToken>assumed-session-token</SessionToken><Expiration>2030-01-01T00:00:00Z</Expiration></Credentials><AssumedRoleUser><Arn>arn:aws:sts::123456789012:assumed-role/TestRole/rds-pi-exporter/pi</Arn><AssumedRoleId>AROATEST:rds-pi-exporter/pi</AssumedRoleId></AssumedRoleUser></AssumeRoleResult><ResponseMetadata><RequestId>test</RequestId></ResponseMetadata></AssumeRoleResponse>`
 	const piJSON = `{"Metrics":[]}`
 
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -167,7 +167,7 @@ func TestNewPIClientWithRoleEndToEnd(t *testing.T) {
 	mu.Lock()
 	defer mu.Unlock()
 	assert.Equal(t, 1, stsCallCount, "STS AssumeRole should have been called exactly once")
-	assert.Contains(t, piAuthHeader, "ASIAIOSFODNN7EXAMPLE", "PI request should use assumed role credentials, not base credentials")
+	assert.Contains(t, piAuthHeader, "TEST-ACCESS-KEY-ID-0", "PI request should use assumed role credentials, not base credentials")
 }
 
 func TestNewPIClientWithRoleAndExternalIDEndToEnd(t *testing.T) {
@@ -176,7 +176,7 @@ func TestNewPIClientWithRoleAndExternalIDEndToEnd(t *testing.T) {
 		stsRequestBody string
 	)
 
-	const stsXML = `<AssumeRoleResponse xmlns="https://sts.amazonaws.com/doc/2011-06-15/"><AssumeRoleResult><Credentials><AccessKeyId>ASIAIOSFODNN7EXAMPLE</AccessKeyId><SecretAccessKey>wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY</SecretAccessKey><SessionToken>assumed-session-token</SessionToken><Expiration>2030-01-01T00:00:00Z</Expiration></Credentials><AssumedRoleUser><Arn>arn:aws:sts::123456789012:assumed-role/TestRole/rds-pi-exporter-pi</Arn><AssumedRoleId>AROATEST:rds-pi-exporter-pi</AssumedRoleId></AssumedRoleUser></AssumeRoleResult><ResponseMetadata><RequestId>test</RequestId></ResponseMetadata></AssumeRoleResponse>`
+	const stsXML = `<AssumeRoleResponse xmlns="https://sts.amazonaws.com/doc/2011-06-15/"><AssumeRoleResult><Credentials><AccessKeyId>TEST-ACCESS-KEY-ID-0</AccessKeyId><SecretAccessKey>TEST-SECRET-KEY-NOT-REAL-000000000000</SecretAccessKey><SessionToken>assumed-session-token</SessionToken><Expiration>2030-01-01T00:00:00Z</Expiration></Credentials><AssumedRoleUser><Arn>arn:aws:sts::123456789012:assumed-role/TestRole/rds-pi-exporter-pi</Arn><AssumedRoleId>AROATEST:rds-pi-exporter-pi</AssumedRoleId></AssumedRoleUser></AssumeRoleResult><ResponseMetadata><RequestId>test</RequestId></ResponseMetadata></AssumeRoleResponse>`
 	const piJSON = `{"Metrics":[]}`
 
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {

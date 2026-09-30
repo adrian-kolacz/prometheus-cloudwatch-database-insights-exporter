@@ -185,7 +185,7 @@ func TestCreateSingleRegionManager(t *testing.T) {
 }
 
 func TestCreateSingleRegionManagerRoleARNWiring(t *testing.T) {
-	const stsXML = `<AssumeRoleResponse xmlns="https://sts.amazonaws.com/doc/2011-06-15/"><AssumeRoleResult><Credentials><AccessKeyId>ASIAIOSFODNN7EXAMPLE</AccessKeyId><SecretAccessKey>wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY</SecretAccessKey><SessionToken>assumed-session-token</SessionToken><Expiration>2030-01-01T00:00:00Z</Expiration></Credentials><AssumedRoleUser><Arn>arn:aws:sts::123456789012:assumed-role/TestRole/rds-pi-exporter-rds</Arn><AssumedRoleId>AROATEST:rds-pi-exporter-rds</AssumedRoleId></AssumedRoleUser></AssumeRoleResult><ResponseMetadata><RequestId>test</RequestId></ResponseMetadata></AssumeRoleResponse>`
+	const stsXML = `<AssumeRoleResponse xmlns="https://sts.amazonaws.com/doc/2011-06-15/"><AssumeRoleResult><Credentials><AccessKeyId>TEST-ACCESS-KEY-ID-0</AccessKeyId><SecretAccessKey>TEST-SECRET-KEY-NOT-REAL-000000000000</SecretAccessKey><SessionToken>assumed-session-token</SessionToken><Expiration>2030-01-01T00:00:00Z</Expiration></Credentials><AssumedRoleUser><Arn>arn:aws:sts::123456789012:assumed-role/TestRole/rds-pi-exporter-rds</Arn><AssumedRoleId>AROATEST:rds-pi-exporter-rds</AssumedRoleId></AssumedRoleUser></AssumeRoleResult><ResponseMetadata><RequestId>test</RequestId></ResponseMetadata></AssumeRoleResponse>`
 	const rdsXML = `<DescribeDBInstancesResponse xmlns="http://rds.amazonaws.com/doc/2014-10-31/"><DescribeDBInstancesResult><DBInstances/></DescribeDBInstancesResult><ResponseMetadata><RequestId>test</RequestId></ResponseMetadata></DescribeDBInstancesResponse>`
 
 	newMockServer := func(t *testing.T, capture *string, mu *sync.Mutex) *httptest.Server {
@@ -271,5 +271,67 @@ func TestCreateSingleRegionManagerRoleARNWiring(t *testing.T) {
 		values, err := url.ParseQuery(stsBody)
 		require.NoError(t, err)
 		assert.Equal(t, "my-external-id", values.Get("ExternalId"))
+	})
+
+	t.Run("RoleSessionName reaches STS AssumeRole", func(t *testing.T) {
+		var mu sync.Mutex
+		var stsBody string
+		server := newMockServer(t, &stsBody, &mu)
+		defer server.Close()
+
+		t.Setenv("AWS_ENDPOINT_URL", server.URL)
+		t.Setenv("AWS_ACCESS_KEY_ID", "AKIDBASE")
+		t.Setenv("AWS_SECRET_ACCESS_KEY", "SECRETBASE")
+		t.Setenv("AWS_SESSION_TOKEN", "")
+
+		cfg := &models.ParsedConfig{
+			Discovery: models.ParsedDiscoveryConfig{
+				RoleARN:   "arn:aws:iam::123456789012:role/TestRole",
+				Instances: models.ParsedInstancesConfig{MaxInstances: testutils.TestMaxInstances},
+				Metrics:   models.ParsedMetricsConfig{Statistic: models.StatisticAvg},
+			},
+		}
+
+		factory := NewRegionManagerFactory()
+		rm, err := factory.createSingleRegionManager("us-west-2", cfg)
+		require.NoError(t, err)
+
+		_, _ = rm.(*SingleRegionManager).instanceManager.GetInstances(context.Background())
+
+		mu.Lock()
+		defer mu.Unlock()
+		require.NotEmpty(t, stsBody)
+		values, err := url.ParseQuery(stsBody)
+		require.NoError(t, err)
+		assert.Equal(t, "rds-pi-exporter-rds", values.Get("RoleSessionName"))
+	})
+
+	t.Run("no RoleARN in config does not call STS AssumeRole", func(t *testing.T) {
+		var mu sync.Mutex
+		var stsBody string
+		server := newMockServer(t, &stsBody, &mu)
+		defer server.Close()
+
+		t.Setenv("AWS_ENDPOINT_URL", server.URL)
+		t.Setenv("AWS_ACCESS_KEY_ID", "AKIDBASE")
+		t.Setenv("AWS_SECRET_ACCESS_KEY", "SECRETBASE")
+		t.Setenv("AWS_SESSION_TOKEN", "")
+
+		cfg := &models.ParsedConfig{
+			Discovery: models.ParsedDiscoveryConfig{
+				Instances: models.ParsedInstancesConfig{MaxInstances: testutils.TestMaxInstances},
+				Metrics:   models.ParsedMetricsConfig{Statistic: models.StatisticAvg},
+			},
+		}
+
+		factory := NewRegionManagerFactory()
+		rm, err := factory.createSingleRegionManager("us-west-2", cfg)
+		require.NoError(t, err)
+
+		_, _ = rm.(*SingleRegionManager).instanceManager.GetInstances(context.Background())
+
+		mu.Lock()
+		defer mu.Unlock()
+		assert.Empty(t, stsBody, "STS AssumeRole must not be called when RoleARN is empty")
 	})
 }
