@@ -42,8 +42,8 @@ func (m *MockSTSClient) AssumeRole(_ context.Context, params *sts.AssumeRoleInpu
 	}
 	return &sts.AssumeRoleOutput{
 		Credentials: &stypes.Credentials{
-			AccessKeyId:     aws.String("ASIAIOSFODNN7EXAMPLE"),
-			SecretAccessKey: aws.String("wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY"),
+			AccessKeyId:     aws.String("TEST-ACCESS-KEY-ID-0"),
+			SecretAccessKey: aws.String("TEST-SECRET-KEY-NOT-REAL-000000000000"),
 			SessionToken:    aws.String("session-token"),
 			Expiration:      aws.Time(time.Now().Add(time.Hour)),
 		},

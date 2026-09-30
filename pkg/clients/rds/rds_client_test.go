@@ -91,7 +91,7 @@ func TestNewRDSClientWithSTSClient(t *testing.T) {
 		require.NoError(t, err)
 
 		assert.True(t, mockSTS.Called(), "STS AssumeRole should have been called on credential retrieval")
-		assert.Equal(t, "ASIAIOSFODNN7EXAMPLE", creds.AccessKeyID)
+		assert.Equal(t, "TEST-ACCESS-KEY-ID-0", creds.AccessKeyID)
 		assert.Equal(t, "session-token", creds.SessionToken)
 		assert.Equal(t, "arn:aws:iam::123456789012:role/TestRole", mockSTS.CapturedRoleArnValue())
 		assert.Equal(t, "rds-pi-exporter-rds", mockSTS.CapturedRoleSessionNameValue())
@@ -136,7 +136,7 @@ func TestNewRDSClientWithRoleEndToEnd(t *testing.T) {
 		rdsAuthHeader string
 	)
 
-	const stsXML = `<AssumeRoleResponse xmlns="https://sts.amazonaws.com/doc/2011-06-15/"><AssumeRoleResult><Credentials><AccessKeyId>ASIAIOSFODNN7EXAMPLE</AccessKeyId><SecretAccessKey>wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY</SecretAccessKey><SessionToken>assumed-session-token</SessionToken><Expiration>2030-01-01T00:00:00Z</Expiration></Credentials><AssumedRoleUser><Arn>arn:aws:sts::123456789012:assumed-role/TestRole/rds-pi-exporter/rds</Arn><AssumedRoleId>AROATEST:rds-pi-exporter/rds</AssumedRoleId></AssumedRoleUser></AssumeRoleResult><ResponseMetadata><RequestId>test</RequestId></ResponseMetadata></AssumeRoleResponse>`
+	const stsXML = `<AssumeRoleResponse xmlns="https://sts.amazonaws.com/doc/2011-06-15/"><AssumeRoleResult><Credentials><AccessKeyId>TEST-ACCESS-KEY-ID-0</AccessKeyId><SecretAccessKey>TEST-SECRET-KEY-NOT-REAL-000000000000</SecretAccessKey><SessionToken>assumed-session-token</SessionToken><Expiration>2030-01-01T00:00:00Z</Expiration></Credentials><AssumedRoleUser><Arn>arn:aws:sts::123456789012:assumed-role/TestRole/rds-pi-exporter/rds</Arn><AssumedRoleId>AROATEST:rds-pi-exporter/rds</AssumedRoleId></AssumedRoleUser></AssumeRoleResult><ResponseMetadata><RequestId>test</RequestId></ResponseMetadata></AssumeRoleResponse>`
 	const rdsXML = `<DescribeDBInstancesResponse xmlns="http://rds.amazonaws.com/doc/2014-10-31/"><DescribeDBInstancesResult><DBInstances/></DescribeDBInstancesResult><ResponseMetadata><RequestId>test</RequestId></ResponseMetadata></DescribeDBInstancesResponse>`
 
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -171,7 +171,7 @@ func TestNewRDSClientWithRoleEndToEnd(t *testing.T) {
 	mu.Lock()
 	defer mu.Unlock()
 	assert.Equal(t, 1, stsCallCount, "STS AssumeRole should have been called exactly once")
-	assert.Contains(t, rdsAuthHeader, "ASIAIOSFODNN7EXAMPLE", "RDS request should use assumed role credentials, not base credentials")
+	assert.Contains(t, rdsAuthHeader, "TEST-ACCESS-KEY-ID-0", "RDS request should use assumed role credentials, not base credentials")
 }
 
 func TestNewRDSClientWithRoleAndExternalIDEndToEnd(t *testing.T) {
@@ -180,7 +180,7 @@ func TestNewRDSClientWithRoleAndExternalIDEndToEnd(t *testing.T) {
 		stsRequestBody string
 	)
 
-	const stsXML = `<AssumeRoleResponse xmlns="https://sts.amazonaws.com/doc/2011-06-15/"><AssumeRoleResult><Credentials><AccessKeyId>ASIAIOSFODNN7EXAMPLE</AccessKeyId><SecretAccessKey>wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY</SecretAccessKey><SessionToken>assumed-session-token</SessionToken><Expiration>2030-01-01T00:00:00Z</Expiration></Credentials><AssumedRoleUser><Arn>arn:aws:sts::123456789012:assumed-role/TestRole/rds-pi-exporter-rds</Arn><AssumedRoleId>AROATEST:rds-pi-exporter-rds</AssumedRoleId></AssumedRoleUser></AssumeRoleResult><ResponseMetadata><RequestId>test</RequestId></ResponseMetadata></AssumeRoleResponse>`
+	const stsXML = `<AssumeRoleResponse xmlns="https://sts.amazonaws.com/doc/2011-06-15/"><AssumeRoleResult><Credentials><AccessKeyId>TEST-ACCESS-KEY-ID-0</AccessKeyId><SecretAccessKey>TEST-SECRET-KEY-NOT-REAL-000000000000</SecretAccessKey><SessionToken>assumed-session-token</SessionToken><Expiration>2030-01-01T00:00:00Z</Expiration></Credentials><AssumedRoleUser><Arn>arn:aws:sts::123456789012:assumed-role/TestRole/rds-pi-exporter-rds</Arn><AssumedRoleId>AROATEST:rds-pi-exporter-rds</AssumedRoleId></AssumedRoleUser></AssumeRoleResult><ResponseMetadata><RequestId>test</RequestId></ResponseMetadata></AssumeRoleResponse>`
 	const rdsXML = `<DescribeDBInstancesResponse xmlns="http://rds.amazonaws.com/doc/2014-10-31/"><DescribeDBInstancesResult><DBInstances/></DescribeDBInstancesResult><ResponseMetadata><RequestId>test</RequestId></ResponseMetadata></DescribeDBInstancesResponse>`
 
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
