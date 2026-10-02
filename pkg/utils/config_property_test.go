@@ -429,6 +429,90 @@ func TestProperty_HighConcurrencyDefault(t *testing.T) {
 	properties.TestingRun(t)
 }
 
+// Property 49: max-instances above default is accepted
+// Validates that values above the default (25) are no longer silently capped.
+func TestProperty_MaxInstancesAboveDefault(t *testing.T) {
+	parameters := gopter.DefaultTestParameters()
+	parameters.MinSuccessfulTests = 100
+	properties := gopter.NewProperties(parameters)
+
+	properties.Property("LoadConfig accepts max-instances values above default", prop.ForAll(
+		func(maxInstances int) bool {
+			yamlContent := fmt.Sprintf(`discovery:
+  regions:
+    - us-west-2
+  instances:
+    max-instances: %d
+`, maxInstances)
+
+			tmpDir := t.TempDir()
+			tmpFile := filepath.Join(tmpDir, "config.yml")
+
+			if err := os.WriteFile(tmpFile, []byte(yamlContent), 0644); err != nil {
+				t.Fatalf("Failed to write temp file: %v", err)
+			}
+
+			config, err := LoadConfig(tmpFile)
+			if err != nil {
+				return false
+			}
+
+			return config.Discovery.Instances.MaxInstances == maxInstances
+		},
+		gen.IntRange(MaxInstances+1, MaxInstancesHardLimit),
+	))
+
+	properties.TestingRun(t)
+}
+
+// Property 50: max-instances at upper boundary is accepted
+func TestProperty_MaxInstancesAtUpperBoundary(t *testing.T) {
+	yamlContent := fmt.Sprintf(`discovery:
+  regions:
+    - us-west-2
+  instances:
+    max-instances: %d
+`, MaxInstancesHardLimit)
+
+	tmpDir := t.TempDir()
+	tmpFile := filepath.Join(tmpDir, "config.yml")
+	if err := os.WriteFile(tmpFile, []byte(yamlContent), 0644); err != nil {
+		t.Fatalf("Failed to write temp file: %v", err)
+	}
+
+	config, err := LoadConfig(tmpFile)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if config.Discovery.Instances.MaxInstances != MaxInstancesHardLimit {
+		t.Errorf("expected %d, got %d", MaxInstancesHardLimit, config.Discovery.Instances.MaxInstances)
+	}
+}
+
+// Property 51: max-instances above hard limit is capped at the hard limit
+func TestProperty_MaxInstancesAboveUpperBoundary(t *testing.T) {
+	yamlContent := fmt.Sprintf(`discovery:
+  regions:
+    - us-west-2
+  instances:
+    max-instances: %d
+`, MaxInstancesHardLimit+1)
+
+	tmpDir := t.TempDir()
+	tmpFile := filepath.Join(tmpDir, "config.yml")
+	if err := os.WriteFile(tmpFile, []byte(yamlContent), 0644); err != nil {
+		t.Fatalf("Failed to write temp file: %v", err)
+	}
+
+	config, err := LoadConfig(tmpFile)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if config.Discovery.Instances.MaxInstances != MaxInstancesHardLimit {
+		t.Errorf("expected hard limit %d, got %d", MaxInstancesHardLimit, config.Discovery.Instances.MaxInstances)
+	}
+}
+
 // Helper function to generate YAML region list
 func generateRegionList(regions []string) string {
 	result := ""

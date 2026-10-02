@@ -155,7 +155,7 @@ Controls how the exporter discovers and monitors RDS/Aurora instances.
 | Field | Type | Required/Optional | Default | Description |
 |-------|------|------------------|---------|-------------|
 | `regions` | array | Required | `["us-west-2"]` | List of AWS regions to scan for RDS/Aurora instances. **Note**: Only the first region is currently used (single-region support only) |
-| `instances.max-instances` | integer | Optional | `25` | Maximum number of instances to monitor. When this limit is exceeded, only the oldest `max-instances` are selected |
+| `instances.max-instances` | integer | Optional | `25` | Maximum number of instances to monitor (accepted range: 1–10,000; values above 10,000 are capped at 10,000). When this limit is exceeded, only the oldest `max-instances` are selected |
 | `instances.cache.ttl` | string | Optional | `"5m"` | Time-to-live for cached instance discovery results. How long to cache the list of RDS/Aurora instances before re-discovering |
 | `instances.include` | map | Optional | `{}` | Map of field names to regex pattern arrays for instance filtering (allowlist mode). Supported fields: `identifier`, `engine`, `tag.<TagKey>` (e.g., `tag.Environment`, `tag.Team`) |
 | `instances.exclude` | map | Optional | `{}` | Map of field names to regex pattern arrays for instance filtering (denylist mode). Supported fields: `identifier`, `engine`, `tag.<TagKey>` (e.g., `tag.Status`, `tag.Maintenance`) |
@@ -535,9 +535,7 @@ Naming pattern examples:
 * `db.Cache.Innodb_buffer_pool_read_requests` for Aurora-MySQL engine with `.avg` ==> `dbi_ams_db_cache_innodb_buffer_pool_read_requests_avg`
 
 ### Instance Limit & Sorting
-The exporter has a **default limit of 25 instances** to ensure optimal performance. This limit can be configured using the `discovery.instances.max-instances` setting. The instances are sorted by their creation time and only the oldest `max-instances` are monitored.
-
-Note: Removal of this constraint is currently under development and will be included in a subsequent release.
+The exporter has a **default limit of 25 instances** to ensure optimal performance. This limit can be configured using the `discovery.instances.max-instances` setting (accepted range: 1–10,000). Values above 10,000 are capped at 10,000 with a log warning. The instances are sorted by their creation time and only the oldest `max-instances` are monitored.
 
 ### Performance & Timing
 
