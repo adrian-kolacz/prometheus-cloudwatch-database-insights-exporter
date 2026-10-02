@@ -347,6 +347,42 @@ func TestProperty_InvalidRegexRejection(t *testing.T) {
 	properties.TestingRun(t)
 }
 
+// Property 47a: Valid concurrency above default is accepted
+// Validates: Requirements 12.3 — values in (DefaultConcurrency, MaximumConcurrency] must not be reset.
+func TestProperty_ValidConcurrencyAboveDefault(t *testing.T) {
+	parameters := gopter.DefaultTestParameters()
+	parameters.MinSuccessfulTests = 100
+	properties := gopter.NewProperties(parameters)
+
+	properties.Property("LoadConfig accepts concurrency values above the default", prop.ForAll(
+		func(concurrency int) bool {
+			yamlContent := fmt.Sprintf(`discovery:
+  regions:
+    - us-west-2
+  processing:
+    concurrency: %d
+`, concurrency)
+
+			tmpDir := t.TempDir()
+			tmpFile := filepath.Join(tmpDir, "config.yml")
+
+			if err := os.WriteFile(tmpFile, []byte(yamlContent), 0644); err != nil {
+				t.Fatalf("Failed to write temp file: %v", err)
+			}
+
+			config, err := LoadConfig(tmpFile)
+			if err != nil {
+				return false
+			}
+
+			return config.Discovery.Processing.Concurrency == concurrency
+		},
+		gen.IntRange(DefaultConcurrency+1, MaximumConcurrency),
+	))
+
+	properties.TestingRun(t)
+}
+
 // Property 47: Low concurrency default
 // Validates: Requirements 12.2
 func TestProperty_LowConcurrencyDefault(t *testing.T) {
@@ -395,7 +431,7 @@ func TestProperty_HighConcurrencyDefault(t *testing.T) {
 	parameters.MinSuccessfulTests = 100
 	properties := gopter.NewProperties(parameters)
 
-	properties.Property("LoadConfig applies default for high concurrency values", prop.ForAll(
+	properties.Property("LoadConfig caps high concurrency values at MaximumConcurrency", prop.ForAll(
 		func(highConcurrency int) bool {
 			yamlContent := fmt.Sprintf(`discovery:
   regions:
@@ -416,9 +452,9 @@ func TestProperty_HighConcurrencyDefault(t *testing.T) {
 				return false
 			}
 
-			// Values > MaximumConcurrency should default to DefaultConcurrency
+			// Values > MaximumConcurrency are capped at MaximumConcurrency
 			if highConcurrency > MaximumConcurrency {
-				return config.Discovery.Processing.Concurrency == DefaultConcurrency
+				return config.Discovery.Processing.Concurrency == MaximumConcurrency
 			}
 
 			return true
