@@ -8,9 +8,6 @@ import (
 	"github.com/aws/aws-sdk-go-v2/config"
 	"github.com/aws/aws-sdk-go-v2/service/rds"
 	"github.com/aws/aws-sdk-go-v2/service/rds/types"
-	"github.com/aws/aws-sdk-go-v2/service/sts"
-
-	"github.com/awslabs/prometheus-cloudwatch-database-insights-exporter/pkg/utils"
 )
 
 type RDSClient struct {
@@ -26,27 +23,12 @@ func NewRDSClient(region string) (*RDSClient, error) {
 	return NewRDSClientWithEndpoint(region, "")
 }
 
-// NewRDSClientWithRole creates an RDS client that assumes the given IAM role before
-// calling the RDS API. externalID is optional (pass "" to omit). If roleARN is empty
-// it behaves identically to NewRDSClient.
-func NewRDSClientWithRole(region, roleARN, externalID string) (*RDSClient, error) {
-	if roleARN == "" {
-		return NewRDSClient(region)
-	}
-
-	log.Printf("[RDS] Creating new RDS client with assumed role: %s", roleARN)
-	cfg, err := config.LoadDefaultConfig(context.TODO(), config.WithRegion(region))
-	if err != nil {
-		log.Printf("[RDS] ERROR: Failed to load AWS config: %v", err)
-		return nil, err
-	}
-
-	stsClient := sts.NewFromConfig(cfg)
-	cfg.Credentials = utils.NewAssumeRoleCredCache(stsClient, roleARN, externalID, "rds-pi-exporter-rds")
-	log.Printf("[RDS] STS credential provider attached for role assumption, region: %s", region)
-	return newRDSClientFromConfig(cfg, ""), nil
+// NewRDSClientFromConfig creates an RDS client from a pre-configured aws.Config.
+// Use this when credentials (e.g. assumed-role) are set up externally, such as
+// by the factory, so that multiple clients can share a single CredentialsCache.
+func NewRDSClientFromConfig(cfg aws.Config) *RDSClient {
+	return newRDSClientFromConfig(cfg, "")
 }
-
 
 func NewRDSClientWithEndpoint(region, endpoint string) (*RDSClient, error) {
 	log.Println("[RDS] Creating new RDS client...")
