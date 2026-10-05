@@ -35,7 +35,8 @@ const (
 
 // validRoleARNPattern accepts exactly the three real AWS partitions: standard, China (aws-cn),
 // and GovCloud (aws-us-gov). The role name/path segment uses IAM-allowed characters [\w+=,.@/-].
-var validRoleARNPattern = regexp.MustCompile(`^arn:(aws|aws-cn|aws-us-gov):iam::\d{12}:role/[\w+=,.@/\-]{1,512}$`)
+// The {1,1000} upper bound is deliberately generous; the empty-name guard below catches trailing slashes.
+var validRoleARNPattern = regexp.MustCompile(`^arn:(aws|aws-cn|aws-us-gov):iam::\d{12}:role/[\w+=,.@/\-]{1,1000}$`)
 
 // validExternalIDPattern matches the character class of the AWS STS ExternalId constraint: [\w+=,.@:/-].
 // Length (2-1224) is checked separately because Go's RE2 engine caps repeat counts at 1000.
@@ -160,10 +161,15 @@ func parsedValidateConfig(config *models.Config) (*models.ParsedConfig, error) {
 		if !validRoleARNPattern.MatchString(roleARN) {
 			return nil, fmt.Errorf("invalid discovery.role_arn %q: expected format arn:aws*:iam::<12-digit-account>:role/<name>", roleARN)
 		}
-		rolePathAndName := roleARN[strings.LastIndex(roleARN, "role/")+5:]
+		// SplitN on the structural ":role/" prefix; role names never contain "/" so the
+		// last path segment is always the role name.
+		rolePathAndName := strings.SplitN(roleARN, ":role/", 2)[1]
 		roleName := rolePathAndName
 		if i := strings.LastIndex(rolePathAndName, "/"); i >= 0 {
 			roleName = rolePathAndName[i+1:]
+		}
+		if roleName == "" {
+			return nil, fmt.Errorf("invalid discovery.role_arn %q: role name segment must not be empty", roleARN)
 		}
 		if utf8.RuneCountInString(roleName) > 64 {
 			return nil, fmt.Errorf("invalid discovery.role_arn: role name %q exceeds the AWS 64-character limit", roleName)

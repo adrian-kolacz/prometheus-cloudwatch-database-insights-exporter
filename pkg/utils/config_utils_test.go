@@ -436,6 +436,31 @@ export:
 			expectedError: true,
 		},
 		{
+			name: "role_arn_external_id with ampersand returns error at parse time",
+			configContent: `discovery:
+  regions:
+  - us-east-1
+  role_arn: "arn:aws:iam::123456789012:role/CrossAccountRole"
+  role_arn_external_id: "prod&team"
+  metrics:
+    statistic: "avg"
+export:
+  port: 8081`,
+			expectedError: true,
+		},
+		{
+			name: "role_arn with trailing slash returns error at parse time",
+			configContent: `discovery:
+  regions:
+  - us-east-1
+  role_arn: "arn:aws:iam::123456789012:role/mypath/"
+  metrics:
+    statistic: "avg"
+export:
+  port: 8081`,
+			expectedError: true,
+		},
+		{
 			name: "role_arn_external_id with special chars is accepted",
 			configContent: `discovery:
   regions:
