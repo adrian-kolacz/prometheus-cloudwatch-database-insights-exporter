@@ -161,8 +161,8 @@ func parsedValidateConfig(config *models.Config) (*models.ParsedConfig, error) {
 		if !validRoleARNPattern.MatchString(roleARN) {
 			return nil, fmt.Errorf("invalid discovery.role_arn %q: expected format arn:aws*:iam::<12-digit-account>:role/<name>", roleARN)
 		}
-		// SplitN on the structural ":role/" prefix; role names never contain "/" so the
-		// last path segment is always the role name.
+		// SplitN on the structural ":role/" prefix. IAM role names themselves cannot
+		// contain "/", so the last slash-delimited segment is always the role name.
 		rolePathAndName := strings.SplitN(roleARN, ":role/", 2)[1]
 		roleName := rolePathAndName
 		if i := strings.LastIndex(rolePathAndName, "/"); i >= 0 {
