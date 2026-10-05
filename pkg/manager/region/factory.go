@@ -17,7 +17,7 @@ import (
 )
 
 // RegionManagerFactory creates and configures region managers for database insights collection.
-// It impelments the factory design pattern to encapsulate the initialization logic required to set up AWS service clients,
+// It implements the factory design pattern to encapsulate the initialization logic required to set up AWS service clients,
 // instance discovery, and metric collection components.
 type RegionManagerFactory struct {
 }

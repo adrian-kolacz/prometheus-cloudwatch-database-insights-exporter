@@ -348,11 +348,21 @@ func TestCreateSingleRegionManagerRoleARNWiring(t *testing.T) {
 		rm, err := factory.createSingleRegionManager("us-west-2", cfg)
 		require.NoError(t, err)
 
-		// Trigger credential retrieval from both RDS (via GetInstances) and PI (via GetInstances indirectly).
-		// Because both clients share a single CredentialsCache, STS is called exactly once.
 		singleRM := rm.(*SingleRegionManager)
+
+		// Trigger RDS credential retrieval via instance discovery.
 		_, _ = singleRM.instanceManager.GetInstances(context.Background())
 
+		// Trigger PI credential retrieval: Metrics field being non-nil but empty forces
+		// GetMetricBatches to call ListAvailableResourceMetrics on the PI client.
+		dummyInstance := models.Instance{
+			ResourceID: "db-TESTRESOURCEID",
+			Engine:     models.Engine("mysql"),
+			Metrics:    &models.Metrics{},
+		}
+		_, _ = singleRM.metricManager.GetMetricBatches(context.Background(), dummyInstance)
+
+		// Both clients share one CredentialsCache, so STS is called exactly once for both.
 		mu.Lock()
 		defer mu.Unlock()
 		assert.Equal(t, 1, stsCallCount, "shared CredentialsCache must result in exactly one STS AssumeRole call")
